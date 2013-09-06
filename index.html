@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<script src="stream.js"></script>
+		<script src="sidfile.js"></script>
+		<script src="sidsynth.js"></script>
+		<script src="sid6510.js"></script>
+		<script src="sidplayer.js"></script>
+		<script src="audioplayer.js"></script>
+		<script>
+			var audio = new AudioPlayer();
+
+			function play(file) {
+				Stream.loadRemoteFile(file, function(data) {
+					sidFile = SidFile(data);
+					synth = new SidSynth(audio.sampleRate, sidFile.mem);
+					cpu = new Sid6510(sidFile.mem, synth);
+					sidPlayer = SidPlayer(sidFile, synth, cpu);
+					audio.setGenerator(sidPlayer);
+					audio.start();
+				})
+			}
+		</script>
+	</head>
+	<body>
+		Click a file to play. Works in Firefox/Chrome on desktop only. (for now)<br>
+		You'll need to reload to stop/change songs for the moment as well.<br>
+		<a href="javascript:void(play('sid/real/Last_Wader.sid'))">Last_Wader.sid</a><br>
+		<a href="javascript:void(play('sid/real/Sweet_JB.sid'))">Sweet_JB.sid</a><br>
+		<a href="javascript:void(play('sid/real/Robocop_3.sid'))">Robocop_3.sid</a><br>
+		<a href="javascript:void(play('sid/real/Voe_Taevas.sid'))">Voe_Taevas.sid</a><br>
+		<a href="javascript:void(play('sid/real/Monty_on_the_Run.sid'))">Monty_on_the_Run.sid</a><br>
+		<a href="javascript:void(play('sid/real/Anal_ogue.sid'))">Anal_ogue.sid</a><br>
+		<a href="javascript:void(play('sid/real/Azmagutah_8580.sid'))">Azmagutah_8580.sid</a><br>
+		<a href="javascript:void(play('sid/real/Electronic_Transfer.sid'))">Electronic_Transfer.sid</a><br>
+		<a href="javascript:void(play('sid/real/National_Park_GRAVE_DANGER.sid'))">National_Park_GRAVE_DANGER.sid</a><br>
+	</body>
+</html>
+
+
