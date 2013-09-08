@@ -92,7 +92,8 @@ EnvelopeGenerator.prototype.clock_delta = function(delta_t) {
 		if (delta_t < rate_step) {
 			this.rate_counter += delta_t;
 			if (this.rate_counter & 0x8000) {
-				++this.rate_counter &= 0x7fff;
+				++this.rate_counter;
+				this.rate_counter &= 0x7fff;
 			}
 			return;
 		}
@@ -129,7 +130,8 @@ EnvelopeGenerator.prototype.clock_common = function() {
 				}
 				break;
 			case EnvelopeGenerator.State.RELEASE:
-				--this.envelope_counter &= 0xff;
+				--this.envelope_counter;
+				this.envelope_counter &= 0xff;
 				break;
 		}
 		switch (this.envelope_counter) {
@@ -1277,6 +1279,7 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 	}
 	this.extfilt.set_sampling_parameter(pass_freq);
 	this.clock_frequency = clock_freq;
+	this.mix_freq = sample_freq;
 	this.sampling = method;
 	this.cycles_per_sample = Math.floor(clock_freq / sample_freq * (1 << SID.const.FIXP_SHIFT) + 0.5);
 	this.sample_offset = 0;
@@ -1653,11 +1656,11 @@ SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
                 buffer[i] = 0;
         }
 
-	var delta = this.cycles_per_sample * count;
+	var delta = (this.cycles_per_sample * count) >> SID.const.FIXP_SHIFT;
 
 	var s = this.clock(delta, buffer, count, 1, offset);
-
         console.log("SID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
+	return s;
 };
 
 SID.prototype.generate = function(samples) {

@@ -64,18 +64,18 @@ function SidDmpPlayer(sidDmpFile, synth) {
 				var samplesToGenerate = Math.ceil(samplesToNextFrame);
 				//console.log("next frame: " + samplesToNextFrame + ", remaining: " + samplesRemaining + ", offset: " + dataOffset + ", generate: " + samplesToGenerate);
 				if (samplesToGenerate > 0) {
-					synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
-					dataOffset += samplesToGenerate * 2;
-					samplesRemaining -= samplesToGenerate;
-					samplesToNextFrame -= samplesToGenerate;
+					var generated = synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
+					dataOffset += generated * 2;
+					samplesRemaining -= generated;
+					samplesToNextFrame -= generated;
 				}
 				
 				getNextFrame();
 			} else {
 				/* generate samples to end of buffer */
 				if (samplesRemaining > 0) {
-					synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
-					samplesToNextFrame -= samplesRemaining;
+					var generated = synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
+					samplesToNextFrame -= generated;
 				}
 				break;
 			}

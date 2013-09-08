@@ -384,6 +384,7 @@ SidSynth.prototype.generateIntoBuffer = function(count, buffer, offset) {
 		buffer[bp+1] = final_sample;
 
 	}
+	return count;
 };
 
 SidSynth.prototype.generateDigi = function(sIn) {
