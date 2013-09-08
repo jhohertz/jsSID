@@ -8,14 +8,14 @@ EnvelopeGenerator.State = Object.freeze({
 	ATTACK: {}, DECAY_SUSTAIN: {}, RELEASE: {}
 });
 
-EnvelopeGenerator.rate_counter_period = Array([
+EnvelopeGenerator.rate_counter_period = Array(
 	9, 32, 63, 95, 149, 220, 267, 313, 392, 977, 1954, 3126, 3907, 11720, 19532, 31251
-]);
+);
 
 // this one seems like overkill... idx +  (idx<<4) should do it...
-EnvelopeGenerator.rate_counter_period = Array([
+EnvelopeGenerator.sustain_level = Array(
 	0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
-]);
+);
 
 EnvelopeGenerator.prototype.reset = function() {
 	this.envelope_counter = 0;
@@ -116,7 +116,8 @@ EnvelopeGenerator.prototype.clock_common = function() {
 		}
     		switch (this.state) {
 			case EnvelopeGenerator.State.ATTACK:
-				++this.envelope_counter &= 0xff;
+				++this.envelope_counter;
+				this.envelope_counter &= 0xff;
 				if (this.envelope_counter == 0xff) {
 					this.state = EnvelopeGenerator.State.DECAY_SUSTAIN;
 					this.rate_period = EnvelopeGenerator.rate_counter_period[this.decay];
@@ -319,19 +320,19 @@ WaveformGenerator.prototype.outputN___ = function() {
 
 
 WaveformGenerator.prototype.output__ST = function() {
-	return WaveformGenerator.comboTable.wave__ST[this.output__S_()] << 4;
+	return this.wave__ST[this.output__S_()] << 4;
 };
 
 WaveformGenerator.prototype.output_P_T = function() {
-	return (WaveformGenerator.comboTable.wave_P_T[this.output___T() >> 1] << 4) & this.output_P__();
+	return (this.wave_P_T[this.output___T() >> 1] << 4) & this.output_P__();
 };
 
 WaveformGenerator.prototype.output_PS_ = function() {
-	return (WaveformGenerator.comboTable.wave_PS_[this.output__S_()] << 4) & this.output_P__();
+	return (this.wave_PS_[this.output__S_()] << 4) & this.output_P__();
 };
 
 WaveformGenerator.prototype.output_PST = function() {
-	return (WaveformGenerator.comboTable.wave_PST[this.output__S_()] << 4) & this.output_P__();
+	return (this.wave_PST[this.output__S_()] << 4) & this.output_P__();
 };
 
 WaveformGenerator.prototype.outputN__T = function() {
