@@ -160,7 +160,7 @@ EnvelopeGenerator.prototype.clock_common = function() {
 
 
 // Waveform object
-function WaveformGenerator {
+function WaveformGenerator() {
 	this.sync_source = this;
 	this.set_chip_model(SID.chip_model.MOS6581);
 	this.reset();
@@ -442,7 +442,7 @@ WaveformGenerator.comboTableCompressed =
 
 // expand/split tables
 WaveformGenerator.comboTable = function() {
-	var data = JXG.decompress(WaveGenerator.comboTableCompressed);
+	var data = JXG.decompress(WaveformGenerator.comboTableCompressed);
 	var stream = Stream(data);
 	var names = [
 		"wave6581__ST", "wave6581_P_T", "wave6581_PS_", "wave6581_PST",
@@ -467,9 +467,8 @@ Voice = function() {
 	this.wave_zero = 0;
 	this.voice_DC = 0;
 
-	this.envelope = null;
-	// FIXME: chip model expects save to be set already, yet this gets called here?
-	this.wave = null;
+	this.envelope = new EnvelopeGenerator();
+	this.wave = new WaveformGenerator();
 	this.set_chip_model(SID.chip_model.MOS6581);
 };
 
@@ -506,7 +505,7 @@ Voice.prototype.mute = function(enable) {
 
 // definitions of Voice methods below here are called for every sample
 Voice.prototype.output = function() {
-	if (!muted) {
+	if (!this.muted) {
 		return (this.wave.output() - this.wave_zero) * this.envelope.output() + this.voice_DC;
 	} else {
 		return 0;
@@ -530,7 +529,7 @@ ExternalFilter.prototype.enable_filter = function(enable) {
 ExternalFilter.prototype.set_sampling_parameter = function(pass_freq) {
 	this.w0hp = 105;
 	this.w0lp = pass_freq * (2.0 * Math.PI * 1.048576);
-	if (this.w0lp > 104858)
+	if (this.w0lp > 104858) {
 		this.w0lp = 104858;
 	}
 
@@ -627,7 +626,7 @@ PointPlotter.interpolate = function(inP, plot, res) {
 			k1 = (inP[p2][1] - inP[p0][1]) / (inP[p2][0] - inP[p0][0]);
 			k2 = (inP[p3][1] - inP[p1][1]) / (inP[p3][0] - inP[p1][0]);
 		}
-		interpolate_segment(x(p1), y(p1), x(p2), y(p2), k1, k2, plot, res);
+		PointPlotter.interpolate_segment(inP[p1][0], inP[p1][1], inP[p2][0], inP[p2][1], k1, k2, plot, res);
 	}
 
 
@@ -644,7 +643,7 @@ PointPlotter.cubic_coefficients = function(x1, y1, x2, y2, k1, k2) {
 };
 
 PointPlotter.interpolate_brute_force = function(x1, y1, x2, y2, k1, k2, plot, res) {
-	var cc = cubic_coefficients(x1, y1, x2, y2, k1, k2);
+	var cc = PointPlotter.cubic_coefficients(x1, y1, x2, y2, k1, k2);
 	for (var x = x1; x <= x2; x += res) {
 		var y = ((cc.a * x + cc.b) * x + cc.c) * x + cc.d;
 		plot[x] = (y < 0) ? 0 : y;
@@ -653,7 +652,7 @@ PointPlotter.interpolate_brute_force = function(x1, y1, x2, y2, k1, k2, plot, re
 
 
 PointPlotter.interpolate_forward_difference = function(x1, y1, x2, y2, k1, k2, plot, res) {
-	var cc = cubic_coefficients(x1, y1, x2, y2, k1, k2);
+	var cc = PointPlotter.cubic_coefficients(x1, y1, x2, y2, k1, k2);
 	var y = ((cc.a * x1 + cc.b) * x1 + cc.c) * x1 + cc.d;
 	var dy = (3 * cc.a * (x1 + res) + 2 * cc.b) * x1 * res + ((cc.a * res + cc.b) * res + cc.c) * res;
 	var d2y = (6 * cc.a * (x1 + res) + 2 * cc.b) * res * res;
@@ -666,10 +665,10 @@ PointPlotter.interpolate_forward_difference = function(x1, y1, x2, y2, k1, k2, p
 	}
 };
 
-PountPlotter.spline_brute_force = false;
+PointPlotter.spline_brute_force = false;
 
 PointPlotter.interpolate_segment = 
-	PountPlotter.spline_brute_force ?
+	PointPlotter.spline_brute_force ?
 	PointPlotter.interpolate_brute_force :
 	PointPlotter.interpolate_forward_difference;
 
@@ -682,7 +681,6 @@ Filter = function() {
 	this.voice3off = 0;
 	this.hp_bp_lp = 0;
 	this.vol = 0;
-	this.// State of filter.
 	this.Vhp = 0;
 	this.Vbp = 0;
 	this.Vlp = 0;
@@ -702,7 +700,7 @@ Filter = function() {
 	this.set_chip_model(SID.chip_model.MOS6581);
 };
 
-Filter.f0_points_6581 = new Array([
+Filter.f0_points_6581 = new Array(
 	[    0,   220 ], [    0,   220 ], [  128,   230 ], [  256,   250 ],
 	[  384,   300 ], [  512,   420 ], [  640,   780 ], [  768,  1600 ],
 	[  832,  2300 ], [  896,  3200 ], [  960,  4300 ], [  992,  5000 ],
@@ -711,15 +709,15 @@ Filter.f0_points_6581 = new Array([
 	[ 1088,  6000 ], [ 1120,  6600 ], [ 1152,  7200 ], [ 1280,  9500 ],
 	[ 1408, 12000 ], [ 1536, 14500 ], [ 1664, 16000 ], [ 1792, 17100 ],
 	[ 1920, 17700 ], [ 2047, 18000 ], [ 2047, 18000 ]
-]);
+);
 
-Filter.f0_points_8580 = new Array([
+Filter.f0_points_8580 = new Array(
 	[    0,     0 ], [    0,     0 ], [  128,   800 ], [  256,  1600 ],
 	[  384,  2500 ], [  512,  3300 ], [  640,  4100 ], [  768,  4800 ],
 	[  896,  5600 ], [ 1024,  6500 ], [ 1152,  7500 ], [ 1280,  8400 ],
 	[ 1408,  9200 ], [ 1536,  9800 ], [ 1664, 10500 ], [ 1792, 11000 ],
 	[ 1920, 11700 ], [ 2047, 12500 ], [ 2047, 12500 ]
-]);
+);
 
 Filter.prototype.enable_filter = function(enable) {
 	this.enabled = enable;
@@ -728,11 +726,11 @@ Filter.prototype.enable_filter = function(enable) {
 Filter.prototype.set_chip_model = function(model) {
 	if (model == SID.chip_model.MOS6581) {
 		this.mixer_DC = -0xfff*0xff/18 >> 7;
-		this.f0 = f0_6581;
+		this.f0 = this.f0_6581;
 		this.f0_points = Filter.f0_points_6581;
 	} else {
 		this.mixer_DC = 0;
-		this.f0 = f0_8580;
+		this.f0 = this.f0_8580;
 		this.f0_points = Filter.f0_points_8580;
 	}
 	this.f0_count = this.f0_points.length;
@@ -886,7 +884,7 @@ Filter.prototype.clock_one = function(voice1, voice2, voice3, ext_in) {
 			break;
 	}
 	var dVbp = (this.w0_ceil_1 * this.Vhp >> 20);
-	var dVlp = (wthis.0_ceil_1 * this.Vbp >> 20);
+	var dVlp = (this.w0_ceil_1 * this.Vbp >> 20);
 	this.Vbp -= dVbp;
 	this.Vlp -= dVlp;
 	this.Vhp = (this.Vbp * this._1024_div_Q >> 10) - this.Vlp - Vi;
@@ -1042,11 +1040,11 @@ function SID (sampleRate, clkRate) {
 	this.ext_in = 0;
 
 	// these are arrays/tables built at runtime
-	this.sample = undef;
-	this.fir = undef;
+	this.sample = null;
+	this.fir = null;
 
 	this.voice = new Array(3);
-	for(var i = 0; i<3 i++) {
+	for(var i = 0; i < 3; i++) {
 		this.voice[i] = new Voice;
 	}
 	this.filter = new Filter();
@@ -1056,12 +1054,12 @@ function SID (sampleRate, clkRate) {
 	this.voice[2].set_sync_source(this.voice[1]);
 
 	// FIXME: hardcoded sample method. should be options.
-	this.set_sampling_parameters(clkRate, SID.sampling_method.SAMPLE_FAST, this.sampleRate);
+	this.set_sampling_parameters(clkRate, SID.sampling_method.SAMPLE_FAST, sampleRate);
 }
 //FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter we don't.
 
 SID.chip_model = Object.freeze({ MOS6581: {}, MOS8580: {} });
-SID.const : Object.freeze({
+SID.const = Object.freeze({
 	FIR_N: 125,
 	FIR_RES_INTERPOLATE: 285,
 	FIR_RES_FAST: 51473,
@@ -1132,7 +1130,7 @@ SID.prototype.read = function(offset) {
 		case 0x1c:
 			return this.voice[2].envelope.readENV();
 		default:
-			this.return bus_value;
+			return this.bus_value;
 	}
 };
 
@@ -1279,13 +1277,13 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 	this.extfilt.set_sampling_parameter(pass_freq);
 	this.clock_frequency = clock_freq;
 	this.sampling = method;
-	this.cycles_per_sample = Math.floor(clock_freq/sample_freq * (1 << SID.const.FIXP_SHIFT) + 0.5);
+	this.cycles_per_sample = Math.floor(clock_freq / sample_freq * (1 << SID.const.FIXP_SHIFT) + 0.5);
 	this.sample_offset = 0;
 	this.sample_prev = 0;
 
 	if (method != SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE && method != SID.sampling_method.SAMPLE_RESAMPLE_FAST) {
-		this.sample = undef;
-		this.fir = undef;
+		this.sample = null;
+		this.fir = null;
 		return true;
 	}
 
@@ -1361,7 +1359,7 @@ SID.prototype.clock_one = function() {
 	this.extfilt.clock_one(this.filter.output());
 };
 
-SID.prototype.clock_delta = function(delta_t)(
+SID.prototype.clock_delta = function(delta_t) {
 	var i;
 	if (delta_t <= 0) return;
 
@@ -1442,7 +1440,7 @@ SID.prototype.clock = function(delta_t, buf, n, interleave, buf_offset) {
 };
 
 SID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
-	int s = 0;
+	var s = 0;
 	for (;;) {
 		var next_sample_offset = this.sample_offset + this.cycles_per_sample + (1 << (SID.const.FIXP_SHIFT - 1));
 		var delta_t_sample = next_sample_offset >> SID.const.FIXP_SHIFT;
@@ -1457,7 +1455,7 @@ SID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
 		this.sample_offset = (next_sample_offset & SID.const.FIXP_MASK) - (1 << (SID.const.FIXP_SHIFT - 1));
 		// new sample output w/ offset
 		var final_sample = parseFloat(this.output()) / 32768;
-		var buf_idx = s++ * interleave * 2 + buff_offset;
+		var buf_idx = s++ * interleave * 2 + buf_offset;
 		buf[buf_idx] = final_sample;
 		buf[buf_idx + 1] = final_sample;
 	}
@@ -1494,7 +1492,7 @@ SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_offs
 		var sample_now = this.output();
 		// new sample output w/ offset
 		var final_sample = parseFloat(this.sample_prev + (this.sample_offset * (sample_now - sample_prev) >> SID.const.FIXP_SHIFT)) / 32768;
-		var buf_idx = s++ * interleave * 2 + buff_offset;
+		var buf_idx = s++ * interleave * 2 + buf_offset;
 		buf[buf_idx] = final_sample;
 		buf[buf_idx + 1] = final_sample;
 		this.sample_prev = sample_now;
@@ -1542,7 +1540,7 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 		var fir_start = fir_offset * this.fir_N;
 		var sample_start = this.sample_index - this.fir_N + SID.const.RINGSIZE;
 
-		int v1 = 0;
+		var v1 = 0;
 		for (j = 0; j < this.fir_N; j++) {
 			v1 += this.sample[sample_start + j] * this.fir[fir_start + j];
 		}
@@ -1553,7 +1551,7 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 		}
 		fir_start = fir_offset * this.fir_N;
 	
-		int v2 = 0;
+		var v2 = 0;
 		for (j = 0; j < this.fir_N; j++) {
 			v2 += this.sample[sample_start + j] * this.fir[fir_start + j];
 		}
@@ -1570,7 +1568,7 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 		}
 		// new sample output w/ offset
 		var final_sample = parseFloat(v) / 32768;
-		var buf_idx = s++ * interleave * 2 + buff_offset;
+		var buf_idx = s++ * interleave * 2 + buf_offset;
 		buf[buf_idx] = final_sample;
 		buf[buf_idx + 1] = final_sample;
 	}
@@ -1628,7 +1626,7 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_of
 		}
 		// new sample output w/ offset
 		var final_sample = parseFloat(v) / 32768;
-		var buf_idx = s++ * interleave * 2 + buff_offset;
+		var buf_idx = s++ * interleave * 2 + buf_offset;
 		buf[buf_idx] = final_sample;
 		buf[buf_idx + 1] = final_sample;
 	}
@@ -1648,7 +1646,7 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_of
 
 // generate count samples into buffer at offset
 SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
-        //console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
+        console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
         // FIXME: this could be done in one pass. (No?)
         for (var i = offset; i < offset + count * 2; i++) {
                 buffer[i] = 0;
@@ -1656,8 +1654,9 @@ SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
 
 	var delta = this.cycles_per_sample * count;
 
-	this.output(delta, buffer, count, 1, offset);
+	var s = this.clock(delta, buffer, count, 1, offset);
 
+        console.log("SID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
 };
 
 SID.prototype.generate = function(samples) {
@@ -1665,4 +1664,5 @@ SID.prototype.generate = function(samples) {
         generateIntoBuffer(samples, data, 0);
         return data;
 };
+
 
