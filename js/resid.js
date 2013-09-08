@@ -1136,6 +1136,10 @@ SID.prototype.read = function(offset) {
 	}
 };
 
+SID.prototype.poke = function(offset, value) {
+	this.write(offset, value);
+};
+
 SID.prototype.write = function(offset, value) {
 	bus_value = value;
 	bus_value_ttl = 0x2000;
@@ -1421,22 +1425,23 @@ SID.prototype.clock_delta = function(delta_t)(
 
 // Below here clocking with audio sampling
 // Main one here call appropriate type
-SID.prototype.clock = function(delta_t, buf, n, interleave) {
+SID.prototype.clock = function(delta_t, buf, n, interleave, buf_offset) {
 	interleave = interleave || 1;
+	buf_offset = buf_offset || 0;
 	switch (this.sampling) {
 		default:
 		case SID.sampling_method.SAMPLE_FAST:
-			return this.clock_fast(delta_t, buf, n, interleave);
+			return this.clock_fast(delta_t, buf, n, interleave, buf_offset);
 		case SID.sampling_method.SAMPLE_INTERPOLATE:
-			return this.clock_interpolate(delta_t, buf, n, interleave);
+			return this.clock_interpolate(delta_t, buf, n, interleave, buf_offset);
 		case SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE:
-			return this.clock_resample_interpolate(delta_t, buf, n, interleave);
+			return this.clock_resample_interpolate(delta_t, buf, n, interleave, buf_offset);
 		case SID.sampling_method.SAMPLE_RESAMPLE_FAST:
-			return this.clock_resample_fast(delta_t, buf, n, interleave);
+			return this.clock_resample_fast(delta_t, buf, n, interleave, buf_offset);
 	}
 };
 
-SID.prototype.clock_fast = function(delta_t, buf, n, interleave) {
+SID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
 	int s = 0;
 	for (;;) {
 		var next_sample_offset = this.sample_offset + this.cycles_per_sample + (1 << (SID.const.FIXP_SHIFT - 1));
@@ -1450,7 +1455,11 @@ SID.prototype.clock_fast = function(delta_t, buf, n, interleave) {
 		this.clock_delta(delta_t_sample);
 		delta_t -= delta_t_sample;
 		this.sample_offset = (next_sample_offset & SID.const.FIXP_MASK) - (1 << (SID.const.FIXP_SHIFT - 1));
-		buf[s++ * interleave] = this.output();
+		// new sample output w/ offset
+		var final_sample = parseFloat(this.output()) / 32768;
+		var buf_idx = s++ * interleave * 2 + buff_offset;
+		buf[buf_idx] = final_sample;
+		buf[buf_idx + 1] = final_sample;
 	}
 	this.clock_delta(delta_t);
 	this.sample_offset -= delta_t << SID.const.FIXP_SHIFT;
@@ -1459,7 +1468,7 @@ SID.prototype.clock_fast = function(delta_t, buf, n, interleave) {
 };
 
 
-SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave) {
+SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_offset) {
 	var s = 0;
 	var i;
 	for (;;) {
@@ -1483,7 +1492,11 @@ SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave) {
 		this.sample_offset = next_sample_offset & SID.const.FIXP_MASK;
 
 		var sample_now = this.output();
-		buf[s++ * interleave] = this.sample_prev + (this.sample_offset * (sample_now - sample_prev) >> SID.const.FIXP_SHIFT);
+		// new sample output w/ offset
+		var final_sample = parseFloat(this.sample_prev + (this.sample_offset * (sample_now - sample_prev) >> SID.const.FIXP_SHIFT)) / 32768;
+		var buf_idx = s++ * interleave * 2 + buff_offset;
+		buf[buf_idx] = final_sample;
+		buf[buf_idx + 1] = final_sample;
 		this.sample_prev = sample_now;
 	}
 
@@ -1501,7 +1514,7 @@ SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave) {
 };
 
 
-SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave) {
+SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave, buf_offset) {
 	var j;
 	var s = 0;
 
@@ -1555,7 +1568,11 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave)
 		} else if (v < -half) {
 			v = -half;
 		}
-		buf[s++ * interleave] = v;
+		// new sample output w/ offset
+		var final_sample = parseFloat(v) / 32768;
+		var buf_idx = s++ * interleave * 2 + buff_offset;
+		buf[buf_idx] = final_sample;
+		buf[buf_idx + 1] = final_sample;
 	}
 
 	for (var i = 0; i < delta_t; i++) {
@@ -1570,7 +1587,7 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave)
 	return s;
 };
 
-SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave) {
+SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_offset) {
 	var s = 0;
 	for (;;) {
 		var next_sample_offset = this.sample_offset + this.cycles_per_sample;
@@ -1609,7 +1626,11 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave) {
 		} else if (v < -half) {
 			v = -half;
 		}
-		buf[s++ * interleave] = v;
+		// new sample output w/ offset
+		var final_sample = parseFloat(v) / 32768;
+		var buf_idx = s++ * interleave * 2 + buff_offset;
+		buf[buf_idx] = final_sample;
+		buf[buf_idx + 1] = final_sample;
 	}
 
 	for (var i = 0; i < delta_t; i++) {
@@ -1622,5 +1643,26 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave) {
 	this.sample_offset -= delta_t << SID.const.FIXP_SHIFT;
 	delta_t = 0;
 	return s;
+};
+
+
+// generate count samples into buffer at offset
+SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
+        //console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
+        // FIXME: this could be done in one pass. (No?)
+        for (var i = offset; i < offset + count * 2; i++) {
+                buffer[i] = 0;
+        }
+
+	var delta = this.cycles_per_sample * count;
+
+	this.output(delta, buffer, count, 1, offset);
+
+};
+
+SID.prototype.generate = function(samples) {
+        var data = new Array(samples*2);
+        generateIntoBuffer(samples, data, 0);
+        return data;
 };
 

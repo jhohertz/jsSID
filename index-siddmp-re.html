@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<script src="js/stream.js"></script>
+		<script src="js/siddmpfile.js"></script>
+		<script src="js/siddmpplayer.js"></script>
+		<script src="js/resid.js"></script>
+		<script src="js/audioplayer.js"></script>
+		<script>
+			var audio = new AudioPlayer();
+			
+			function play(file) {
+				Stream.loadRemoteFile(file, function(data) {
+					sidDmpFile = SidDmpFile(data);
+					synth = new SID(audio.sampleRate);
+					sidDmpPlayer = SidDmpPlayer(sidDmpFile, synth);
+					audio.setGenerator(sidDmpPlayer);
+					audio.start();
+				})
+			}
+		</script>
+	</head>
+	<body>
+		Click a file to play. Works in Firefox/Chrome on desktop only (for now)<br>
+		<a href="javascript:void(play('sid/dmp/Autumn.dmp'))">Autumn.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Monty.dmp'))">Monty.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Robocop3.dmp'))">Robocop3.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Mr_Marvellous.dmp'))">Mr_Marvellous.dmp</a>
+	</body>
+</html>
