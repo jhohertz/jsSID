@@ -1033,8 +1033,9 @@ Filter.prototype.output = function() {
 
 
 // Main Object
-function SID (sampleRate) {
-	//this.sampleRate = sampleRate | 44100;
+function SID (sampleRate, clkRate) {
+	sampleRate = sampleRate || 44100;
+	clkRate = clkRate || SID.const.CLK_PAL;
 
 	this.bus_value = 0;
 	this.bus_value_ttl = 0;
@@ -1054,12 +1055,10 @@ function SID (sampleRate) {
 	this.voice[1].set_sync_source(this.voice[0]);
 	this.voice[2].set_sync_source(this.voice[1]);
 
-	// FIXME: hardcoded to PAL rate. should be options.
-	this.set_sampling_parameters(985248, SID.sampling_method.SAMPLE_FAST, this.sampleRate);
+	// FIXME: hardcoded sample method. should be options.
+	this.set_sampling_parameters(clkRate, SID.sampling_method.SAMPLE_FAST, this.sampleRate);
 }
-//FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter.
-
-
+//FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter we don't.
 
 SID.chip_model = Object.freeze({ MOS6581: {}, MOS8580: {} });
 SID.const : Object.freeze({
@@ -1069,7 +1068,9 @@ SID.const : Object.freeze({
 	FIR_SHIFT: 15,
 	RINGSIZE: 16384,
 	FIXP_SHIFT: 16,
-	FIXP_MASK: 0xffff
+	FIXP_MASK: 0xffff,
+	CLK_PAL: 985248,
+	CLK_NTSC: 1022730
 });
 SID.sampling_method = Object.freeze({
 	SAMPLE_FAST: {},
@@ -1252,6 +1253,8 @@ SID.prototype.IO = function(x) {
 
 // Use a clock freqency of 985248Hz for PAL C64, 1022730Hz for NTSC C64.
 SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq, pass_freq, filter_scale) {
+	pass_freq = pass_freq || -1;
+	filter_scale = filter_scale || 0.97;
 
 	if (method == SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE || method == SID.sampling_method.SAMPLE_RESAMPLE_FAST) {
 		if (SID.const.FIR_N * clock_freq / sample_freq >= SID.const.RINGSIZE) {
@@ -1275,9 +1278,10 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 	this.cycles_per_sample = Math.floor(clock_freq/sample_freq * (1 << SID.const.FIXP_SHIFT) + 0.5);
 	this.sample_offset = 0;
 	this.sample_prev = 0;
+
 	if (method != SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE && method != SID.sampling_method.SAMPLE_RESAMPLE_FAST) {
-		this.sample = 0;
-		this.fir = 0;
+		this.sample = undef;
+		this.fir = undef;
 		return true;
 	}
 
@@ -1418,6 +1422,7 @@ SID.prototype.clock_delta = function(delta_t)(
 // Below here clocking with audio sampling
 // Main one here call appropriate type
 SID.prototype.clock = function(delta_t, buf, n, interleave) {
+	interleave = interleave || 1;
 	switch (this.sampling) {
 		default:
 		case SID.sampling_method.SAMPLE_FAST:
@@ -1486,7 +1491,7 @@ SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave) {
 		this.clock_one();
 	}
 	if (i < delta_t) {
-		sample_prev = this.output();
+		this.sample_prev = this.output();
 		this.clock_one();
 	}
 	this.sample_offset -= delta_t << SID.const.FIXP_SHIFT;
@@ -1519,36 +1524,30 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave)
 		delta_t -= delta_t_sample;
 		this.sample_offset = next_sample_offset & SID.const.FIXP_MASK;
 
-// FIXME: lots of pointer math needing reduction
-		int fir_offset = this.sample_offset*this.fir_RES >> SID.const.FIXP_SHIFT;
-		int fir_offset_rmd = this.sample_offset*this.fir_RES & SID.const.FIXP_MASK;
-		short* fir_start = this.fir + fir_offset*this.fir_N;
-		short* sample_start = this.sample + this.sample_index - this.fir_N + SID.const.RINGSIZE;
+		var fir_offset = this.sample_offset * this.fir_RES >> SID.const.FIXP_SHIFT;
+		var fir_offset_rmd = this.sample_offset * this.fir_RES & SID.const.FIXP_MASK;
+		var fir_start = fir_offset * this.fir_N;
+		var sample_start = this.sample_index - this.fir_N + SID.const.RINGSIZE;
 
 		int v1 = 0;
 		for (j = 0; j < this.fir_N; j++) {
-// pointer offsets need conversion
-			v1 += sample_start[j]*fir_start[j];
+			v1 += this.sample[sample_start + j] * this.fir[fir_start + j];
 		}
 
 		if (++fir_offset == this.fir_RES) {
 			fir_offset = 0;
 			--sample_start;
 		}
-// more pointer math to fix
-		fir_start = this.fir + fir_offset*this.fir_N;
+		fir_start = fir_offset * this.fir_N;
 	
 		int v2 = 0;
 		for (j = 0; j < this.fir_N; j++) {
-// more pointer math to fix
-			v2 += sample_start[j]*fir_start[j];
+			v2 += this.sample[sample_start + j] * this.fir[fir_start + j];
 		}
 
-		var v = v1 + (fir_offset_rmd*(v2 - v1) >> SID.const.FIXP_SHIFT);
-
+		var v = v1 + (fir_offset_rmd * (v2 - v1) >> SID.const.FIXP_SHIFT);
 		v >>= SID.const.FIR_SHIFT;
 
-		// Saturated arithmetics to guard against 16 bit sample overflow.
 		// FIXME constant here
 		var half = 1 << 15;
 		if (v >= half) {
@@ -1592,15 +1591,13 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave) {
 		delta_t -= delta_t_sample;
 		this.sample_offset = next_sample_offset & SID.const.FIXP_MASK;
 
-		var fir_offset = this.sample_offset*this.fir_RES >> SID.const.FIXP_SHIFT;
-// FIXME POINTER MATH
-		var fir_start = this.fir + this.fir_offset * this.fir_N;
-		var sample_start = this.sample + this.sample_index - this.fir_N + SID.const.RINGSIZE;
+		var fir_offset = this.sample_offset * this.fir_RES >> SID.const.FIXP_SHIFT;
+		var fir_start = this.fir_offset * this.fir_N;
+		var sample_start = this.sample_index - this.fir_N + SID.const.RINGSIZE;
 
 		var v = 0;
 		for (var j = 0; j < this.fir_N; j++) {
-// FIXME POINTER
-			v += sample_start[j]*fir_start[j];
+			v += this.sample[sample_start + j] * this.fir[fir_start + j];
 		}
 
 		v >>= SID.const.FIR_SHIFT;
@@ -1626,9 +1623,4 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave) {
 	delta_t = 0;
 	return s;
 };
-
-
-
-
-
 
