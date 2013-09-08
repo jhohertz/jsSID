@@ -18,20 +18,19 @@ EnvelopeGenerator.rate_counter_period = Array([
 ]);
 
 EnvelopeGenerator.prototype.reset = function() {
-	envelope_counter = 0;
-	attack = 0;
-	decay = 0;
-	sustain = 0;
-	release = 0;
-	gate = 0;
-	rate_counter = 0;
-	exponential_counter = 0;
-	exponential_counter_period = 1;
-	state = EnvelopeGenerator.State.RELEASE;
-	rate_period = EnvelopeGenerator.rate_counter_period[this.release];
-	hold_zero = true;
+	this.envelope_counter = 0;
+	this.attack = 0;
+	this.decay = 0;
+	this.sustain = 0;
+	this.release = 0;
+	this.gate = 0;
+	this.rate_counter = 0;
+	this.exponential_counter = 0;
+	this.exponential_counter_period = 1;
+	this.state = EnvelopeGenerator.State.RELEASE;
+	this.rate_period = EnvelopeGenerator.rate_counter_period[this.release];
+	this.hold_zero = true;
 };
-
 
 EnvelopeGenerator.prototype.writeCONTROL_REG = function(control) {
 	var gate_next = control & 0x01;
@@ -74,40 +73,40 @@ EnvelopeGenerator.prototype.output = function() {
 
 // definitions of EnvelopeGenerator methods below here are called for every sample
 
-// FIXME: this was joined, might be better to split for performance
-EnvelopeGenerator.prototype.clock = function(delta_t) {
-	if(!delta_t) {
-		if (++this.rate_counter & 0x8000) {
-			++this.rate_counter &= 0x7fff;
-		}
-		if (this.rate_counter != this.rate_period) {
-			return;
-		}
-		this.clock_common();
-	} else {
-		var rate_step = this.rate_period - this.rate_counter;
-		if (rate_step <= 0) {
-			rate_step += 0x7fff;
-		}
-		while (delta_t) {
-			if (delta_t < rate_step) {
-				this.rate_counter += delta_t;
-				if (this.rate_counter & 0x8000) {
-					++this.rate_counter &= 0x7fff;
-				}
-				return;
-			}
-
-			delta_t -= rate_step;
-
-			this.clock_common();
-
-			rate_step = this.rate_period;
-		}
-
+EnvelopeGenerator.prototype.clock_one = function() {
+	if (++this.rate_counter & 0x8000) {
+		++this.rate_counter &= 0x7fff;
 	}
+	if (this.rate_counter != this.rate_period) {
+		return;
+	}
+	this.clock_common();
 };
 
+EnvelopeGenerator.prototype.clock_delta = function(delta_t) {
+	var rate_step = this.rate_period - this.rate_counter;
+	if (rate_step <= 0) {
+		rate_step += 0x7fff;
+	}
+	while (delta_t) {
+		if (delta_t < rate_step) {
+			this.rate_counter += delta_t;
+			if (this.rate_counter & 0x8000) {
+				++this.rate_counter &= 0x7fff;
+			}
+			return;
+		}
+
+		delta_t -= rate_step;
+
+		this.clock_common();
+
+		rate_step = this.rate_period;
+	}
+
+};
+
+// FIXME: this is part of the fast path, maybe factoring it out was not the best?
 EnvelopeGenerator.prototype.clock_common = function() {
 	this.rate_counter = 0;
 	if (this.state == EnvelopeGenerator.State.ATTACK || ++this.exponential_counter == this.exponential_counter_period) {
@@ -600,11 +599,8 @@ ExternalFilter.prototype.output = function() {
 };
 
 
-
-// constructor
-PointPlotter = function(arr) {
-	this.f = arr;
-};
+// constructor, no.. just a collection of functions for now
+PointPlotter = {};
 
 PointPlotter.interpolate = function(inP, plot, res) {
 	var k1, k2;
@@ -640,12 +636,11 @@ PointPlotter.interpolate = function(inP, plot, res) {
 PointPlotter.cubic_coefficients = function(x1, y1, x2, y2, k1, k2) {
 	var dx = x2 - x1;
 	var dy = y2 - y1;
-	return new Object({
-		a: ((k1 + k2) - 2 * dy / dx) / (dx * dx);
-		b: ((k2 - k1) / dx - 3 * (x1 + x2) * a) / 2;
-		c: k1 - (3 * x1 * a + 2 * b) * x1;
-		d: y1 - ((x1 * a + b) * x1 + c) * x1;
-	});
+	var a = ((k1 + k2) - 2 * dy / dx) / (dx * dx);
+	var b = ((k2 - k1) / dx - 3 * (x1 + x2) * a) / 2;
+	var c = k1 - (3 * x1 * a + 2 * b) * x1;
+	var d = y1 - ((x1 * a + b) * x1 + c) * x1;
+	return new Object({ a: a, b: b, c: c, d: d });
 };
 
 PointPlotter.interpolate_brute_force = function(x1, y1, x2, y2, k1, k2, plot, res) {
@@ -1039,23 +1034,28 @@ Filter.prototype.output = function() {
 
 // Main Object
 function SID (sampleRate) {
-	this.sampleRate = sampleRate | 44100;
+	//this.sampleRate = sampleRate | 44100;
 
-	this.sample = 0;
-	this.fir = 0;
+	this.bus_value = 0;
+	this.bus_value_ttl = 0;
+	this.ext_in = 0;
+
+	// these are arrays/tables built at runtime
+	this.sample = undef;
+	this.fir = undef;
+
 	this.voice = new Array(3);
 	for(var i = 0; i<3 i++) {
 		this.voice[i] = new Voice;
 	}
+	this.filter = new Filter();
+	this.extfilt = new ExternalFilter();
 	this.voice[0].set_sync_source(this.voice[2]);
 	this.voice[1].set_sync_source(this.voice[0]);
 	this.voice[2].set_sync_source(this.voice[1]);
 
 	// FIXME: hardcoded to PAL rate. should be options.
 	this.set_sampling_parameters(985248, SID.sampling_method.SAMPLE_FAST, this.sampleRate);
-	this.bus_value = 0;
-	this.bus_value_ttl = 0;
-	this.ext_in = 0;
 }
 //FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter.
 
@@ -1251,7 +1251,7 @@ SID.prototype.IO = function(x) {
 
 
 // Use a clock freqency of 985248Hz for PAL C64, 1022730Hz for NTSC C64.
-SID.prototype.IO = function(clock_freq, method, sample_freq, pass_freq, filter_scale) {
+SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq, pass_freq, filter_scale) {
 
 	if (method == SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE || method == SID.sampling_method.SAMPLE_RESAMPLE_FAST) {
 		if (SID.const.FIR_N * clock_freq / sample_freq >= SID.const.RINGSIZE) {
@@ -1272,13 +1272,10 @@ SID.prototype.IO = function(clock_freq, method, sample_freq, pass_freq, filter_s
 	this.extfilt.set_sampling_parameter(pass_freq);
 	this.clock_frequency = clock_freq;
 	this.sampling = method;
-	this.cycles_per_sample = cycle_count(clock_freq/sample_freq * (1 << FIXP_SHIFT) + 0.5);
+	this.cycles_per_sample = Math.floor(clock_freq/sample_freq * (1 << SID.const.FIXP_SHIFT) + 0.5);
 	this.sample_offset = 0;
 	this.sample_prev = 0;
 	if (method != SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE && method != SID.sampling_method.SAMPLE_RESAMPLE_FAST) {
-		//FIXME: removed these... seems unnecessary, clean up later
-		//delete this.sample;
-		//delete this.fir;
 		this.sample = 0;
 		this.fir = 0;
 		return true;
@@ -1294,25 +1291,24 @@ SID.prototype.IO = function(clock_freq, method, sample_freq, pass_freq, filter_s
 
 	var f_samples_per_cycle = sample_freq / clock_freq;
 	var f_cycles_per_sample = clock_freq / sample_freq;
-	// FIXME: parseInt may not match C semantics of int
-	fir_N = parseInt(N * f_cycles_per_sample) + 1;
-	fir_N |= 1;
+	// FIXME: cast int became floor
+	this.fir_N = Math.floor(N * f_cycles_per_sample) + 1;
+	this.fir_N |= 1;
 
 	var res = (method == (SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE ? SID.const.FIR_RES_INTERPOLATE : SID.const.FIR_RES_FAST));
 	var n = Math.ceil(Math.log(res / f_cycles_per_sample) / Math.log(2));
-	fir_RES = 1 << n;
+	this.fir_RES = 1 << n;
 
-	//delete fir;
-	this.fir = new Array(fir_N * fir_RES);
+	this.fir = new Array(this.fir_N * this.fir_RES);
 
-	for (var i = 0; i < fir_RES; i++) {
-		var fir_offset = i * fir_N + fir_N / 2;
+	for (var i = 0; i < this.fir_RES; i++) {
+		var fir_offset = i * this.fir_N + this.fir_N / 2;
 		// FIXME: i below was cast to double before. should be ok, clean up when confirmed
-		var j_offset = i / fir_RES;
-		for (var j = -fir_N / 2; j <= fir_N / 2; j++) {
+		var j_offset = i / this.fir_RES;
+		for (var j = -this.fir_N / 2; j <= this.fir_N / 2; j++) {
 			var jx = j - j_offset;
 			var wt = wc * jx / f_cycles_per_sample;
-			var temp = jx / (fir_N / 2);
+			var temp = jx / (this.fir_N / 2);
 			var Kaiser = Math.abs(temp) <= 1 ? I0(beta * Math.sqrt(1 - temp * temp)) / I0beta : 0;
 			var sincwt = Math.abs(wt) >= 1e-6 ? Math.sin(wt) / wt : 1;
 			var val = (1 << FIR_SHIFT) * filter_scale * f_samples_per_cycle * wc / Math.PI * sincwt * Kaiser;
@@ -1335,7 +1331,7 @@ SID.prototype.IO = function(clock_freq, method, sample_freq, pass_freq, filter_s
 
 SID.prototype.adjust_sampling_frequency = function(sample_freq) {
 	// FIXME: casting warning, using floor
-	this.cycles_per_sample = Math.floor(clock_frequency/sample_freq*(1 << SID.const.FIXP_SHIFT) + 0.5);
+	this.cycles_per_sample = Math.floor(this.clock_frequency/sample_freq*(1 << SID.const.FIXP_SHIFT) + 0.5);
 };
 
 SID.prototype.clock_one = function() {
@@ -1530,7 +1526,7 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave)
 		short* sample_start = this.sample + this.sample_index - this.fir_N + SID.const.RINGSIZE;
 
 		int v1 = 0;
-		for (j = 0; j < fir_N; j++) {
+		for (j = 0; j < this.fir_N; j++) {
 // pointer offsets need conversion
 			v1 += sample_start[j]*fir_start[j];
 		}
@@ -1543,7 +1539,7 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave)
 		fir_start = this.fir + fir_offset*this.fir_N;
 	
 		int v2 = 0;
-		for (j = 0; j < fir_N; j++) {
+		for (j = 0; j < this.fir_N; j++) {
 // more pointer math to fix
 			v2 += sample_start[j]*fir_start[j];
 		}
@@ -1596,13 +1592,13 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave) {
 		delta_t -= delta_t_sample;
 		this.sample_offset = next_sample_offset & SID.const.FIXP_MASK;
 
-		var fir_offset = sample_offset*fir_RES >> SID.const.FIXP_SHIFT;
+		var fir_offset = this.sample_offset*this.fir_RES >> SID.const.FIXP_SHIFT;
 // FIXME POINTER MATH
 		var fir_start = this.fir + this.fir_offset * this.fir_N;
 		var sample_start = this.sample + this.sample_index - this.fir_N + SID.const.RINGSIZE;
 
 		var v = 0;
-		for (var j = 0; j < fir_N; j++) {
+		for (var j = 0; j < this.fir_N; j++) {
 // FIXME POINTER
 			v += sample_start[j]*fir_start[j];
 		}
