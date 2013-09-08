@@ -38,7 +38,7 @@ EnvelopeGenerator.prototype.writeCONTROL_REG = function(control) {
 		this.state = EnvelopeGenerator.State.ATTACK;
 		this.rate_period = EnvelopeGenerator.rate_counter_period[this.attack];
 		this.hold_zero = false;
-	} else if (this.gate && !this.gate_next) {
+	} else if (this.gate && !gate_next) {
 		this.state = EnvelopeGenerator.State.RELEASE;
 		this.rate_period = EnvelopeGenerator.rate_counter_period[this.release];
 	}
@@ -72,10 +72,10 @@ EnvelopeGenerator.prototype.output = function() {
 };
 
 // definitions of EnvelopeGenerator methods below here are called for every sample
-
 EnvelopeGenerator.prototype.clock_one = function() {
 	if (++this.rate_counter & 0x8000) {
-		++this.rate_counter &= 0x7fff;
+		++this.rate_counter;
+		this.rate_counter &= 0x7fff;
 	}
 	if (this.rate_counter != this.rate_period) {
 		return;
@@ -1650,7 +1650,7 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_of
 
 // generate count samples into buffer at offset
 SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
-        console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
+        //console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
         // FIXME: this could be done in one pass. (No?)
         for (var i = offset; i < offset + count * 2; i++) {
                 buffer[i] = 0;
