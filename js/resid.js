@@ -1659,7 +1659,7 @@ SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
 	var delta = (this.cycles_per_sample * count) >> SID.const.FIXP_SHIFT;
 
 	var s = this.clock(delta, buffer, count, 1, offset);
-        console.log("SID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
+        //console.log("SID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
 	return s;
 };
 

@@ -37,9 +37,10 @@ Sid6510.prototype.setmem = function(addr, value) {
 
 	if ((addr & 0xfc00) == 0xd400 && this.sid != null) {
 		this.sid.poke(addr & 0x1f, value);
-		if ((addr > 0xd418) && (addr < 0xd500)) {
-			this.sid.pokeDigi(addr, value);
-		}
+		// disabled for now
+		//if ((addr > 0xd418) && (addr < 0xd500)) {
+		//	this.sid.pokeDigi(addr, value);
+		//}
 	}
 
 };
