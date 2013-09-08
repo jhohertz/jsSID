@@ -13,7 +13,12 @@
 			function play(file) {
 				Stream.loadRemoteFile(file, function(data) {
 					sidDmpFile = SidDmpFile(data);
-					synth = new SID(audio.sampleRate);
+					//synth = new SID(audio.sampleRate);
+                                        //synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_FAST);
+                                        //synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE);
+                                        //synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_INTERPOLATE);
+                                        synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_RESAMPLE_FAST);
+
 					sidDmpPlayer = SidDmpPlayer(sidDmpFile, synth);
 					audio.setGenerator(sidDmpPlayer);
 					audio.start();

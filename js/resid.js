@@ -1034,9 +1034,10 @@ Filter.prototype.output = function() {
 
 
 // Main Object
-function SID (sampleRate, clkRate) {
+function SID (sampleRate, clkRate, method) {
 	sampleRate = sampleRate || 44100;
 	clkRate = clkRate || SID.const.CLK_PAL;
+	method = method || SID.sampling_method.SAMPLE_FAST;
 
 	this.bus_value = 0;
 	this.bus_value_ttl = 0;
@@ -1057,7 +1058,7 @@ function SID (sampleRate, clkRate) {
 	this.voice[2].set_sync_source(this.voice[1]);
 
 	// FIXME: hardcoded sample method. should be options.
-	this.set_sampling_parameters(clkRate, SID.sampling_method.SAMPLE_FAST, sampleRate);
+	this.set_sampling_parameters(clkRate, method, sampleRate);
 }
 //FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter we don't.
 
@@ -1240,7 +1241,7 @@ SID.prototype.enable_external_filter = function(enable) {
 	extfilt.enable_filter(enable);
 };
 
-SID.prototype.IO = function(x) {
+SID.prototype.I0 = function(x) {
 	var I0e = 1e-6;			// FIXME: const, used once
 	var sum = 1;
 	var u = 1;
@@ -1296,7 +1297,7 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 	var wc = (2 * pass_freq / sample_freq + 1) * Math.PI / 2;
 	var beta = 0.1102 * (A - 8.7);			// FIXME: constant
 	var I0beta = this.I0(beta);				// FIXME: constant
-	var N = Math.Floor((A - 7.95) / (2.285 * dw) + 0.5);
+	var N = Math.floor((A - 7.95) / (2.285 * dw) + 0.5);
 	N += N & 1;
 
 	var f_samples_per_cycle = sample_freq / clock_freq;
@@ -1319,9 +1320,9 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 			var jx = j - j_offset;
 			var wt = wc * jx / f_cycles_per_sample;
 			var temp = jx / (this.fir_N / 2);
-			var Kaiser = Math.abs(temp) <= 1 ? I0(beta * Math.sqrt(1 - temp * temp)) / I0beta : 0;
+			var Kaiser = Math.abs(temp) <= 1 ? this.I0(beta * Math.sqrt(1 - temp * temp)) / I0beta : 0;
 			var sincwt = Math.abs(wt) >= 1e-6 ? Math.sin(wt) / wt : 1;
-			var val = (1 << FIR_SHIFT) * filter_scale * f_samples_per_cycle * wc / Math.PI * sincwt * Kaiser;
+			var val = (1 << SID.const.FIR_SHIFT) * filter_scale * f_samples_per_cycle * wc / Math.PI * sincwt * Kaiser;
 			// FIXME: was a cast to short, convered to Math.floor. Clean once confirmed
 			this.fir[fir_offset + j] = Math.floor(val + 0.5);
 		}
@@ -1495,7 +1496,7 @@ SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_offs
 
 		var sample_now = this.output();
 		// new sample output w/ offset
-		var final_sample = parseFloat(this.sample_prev + (this.sample_offset * (sample_now - sample_prev) >> SID.const.FIXP_SHIFT)) / 32768;
+		var final_sample = parseFloat(this.sample_prev + (this.sample_offset * (sample_now - this.sample_prev) >> SID.const.FIXP_SHIFT)) / 32768;
 		var buf_idx = s++ * interleave * 2 + buf_offset;
 		buf[buf_idx] = final_sample;
 		buf[buf_idx + 1] = final_sample;
@@ -1519,7 +1520,6 @@ SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_offs
 SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave, buf_offset) {
 	var j;
 	var s = 0;
-
 	for (;;) {
 		var next_sample_offset = this.sample_offset + this.cycles_per_sample;
 		var delta_t_sample = next_sample_offset >> SID.const.FIXP_SHIFT;
@@ -1621,7 +1621,6 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_of
 
 		v >>= SID.const.FIR_SHIFT;
 
-		// Saturated arithmetics to guard against 16 bit sample overflow.
 		var half = 1 << 15;			// FIXME: const
 		if (v >= half) {
 			v = half - 1;
@@ -1650,16 +1649,14 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_of
 
 // generate count samples into buffer at offset
 SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
-        //console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
+        console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
         // FIXME: this could be done in one pass. (No?)
         for (var i = offset; i < offset + count * 2; i++) {
                 buffer[i] = 0;
         }
-
 	var delta = (this.cycles_per_sample * count) >> SID.const.FIXP_SHIFT;
-
 	var s = this.clock(delta, buffer, count, 1, offset);
-        //console.log("SID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
+        console.log("SID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
 	return s;
 };
 

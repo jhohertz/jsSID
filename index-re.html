@@ -15,13 +15,17 @@
 				Stream.loadRemoteFile(file, function(data) {
 					sidFile = SidFile(data);
 					//synth = new SID(audio.sampleRate, sidFile.mem);
-					synth = new SID(audio.sampleRate);
+					//synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_FAST);
+					synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE);
 					cpu = new Sid6510(sidFile.mem, synth);
 					sidPlayer = SidPlayer(sidFile, synth, cpu);
 					audio.setGenerator(sidPlayer);
 					audio.start();
 				})
 			}
+
+        
+
 		</script>
 	</head>
 	<body>
