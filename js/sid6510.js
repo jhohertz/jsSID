@@ -45,6 +45,13 @@ Sid6510.prototype.setmem = function(addr, value) {
 
 };
 
+// just like pc++, but with bound check on pc after
+Sid6510.prototype.pcinc = function(mode) {
+	var pc = this.pc++;
+	this.pc &= 0xffff;
+	return pc;
+};
+
 Sid6510.prototype.getaddr = function(mode) {
 
 	var ad,ad2;
@@ -54,43 +61,43 @@ Sid6510.prototype.getaddr = function(mode) {
 			return 0;
 		case Sid6510.mode.imm:
 			this.cycles += 2;
-			return this.getmem(this.pc++);
+			return this.getmem(this.pcinc());
 		case Sid6510.mode.abs:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
-			ad |= this.getmem(this.pc++) << 8;
+			ad = this.getmem(this.pcinc());
+			ad |= this.getmem(this.pcinc()) << 8;
 			return this.getmem(ad);
 		case Sid6510.mode.absx:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
-			ad |= 256 * this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
+			ad |= 256 * this.getmem(this.pcinc());
 			ad2 = ad + this.x;
 			if ((ad2 & 0xff00) != (ad & 0xff00)) this.cycles++;
 			return this.getmem(ad2);
 		case Sid6510.mode.absy:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
-			ad |= 256 * this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
+			ad |= 256 * this.getmem(this.pcinc());
 			ad2 = ad + this.y;
 			if ((ad2 & 0xff00) != (ad & 0xff00)) this.cycles++;
 			return this.getmem(ad2);
 		case Sid6510.mode.zp:
 			this.cycles += 3;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			return this.getmem(ad);
 		case Sid6510.mode.zpx:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			ad += this.x;
 			return this.getmem(ad & 0xff);
 		case Sid6510.mode.zpy:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			ad += this.y;
 			return this.getmem(ad & 0xff);
 		case Sid6510.mode.indx:
 			this.cycles += 6;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			ad += this.x;
 			ad2 = this.getmem(ad & 0xff);
 			ad++;
@@ -98,7 +105,7 @@ Sid6510.prototype.getaddr = function(mode) {
 			return this.getmem(ad2);
 		case Sid6510.mode.indy:
 			this.cycles += 5;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			ad2 = this.getmem(ad);
 			ad2 |= this.getmem((ad + 1) &0xff) << 8;
 			ad = ad2 + this.y;
@@ -152,45 +159,45 @@ Sid6510.prototype.putaddr = function(mode, val) {
 	switch(mode) {
 		case Sid6510.mode.abs:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
-			ad |= this.getmem(this.pc++) << 8;
+			ad = this.getmem(this.pcinc());
+			ad |= this.getmem(this.pcinc()) << 8;
 			this.setmem(ad, val);
 			return;
 		case Sid6510.mode.absx:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
-			ad |= this.getmem(this.pc++) << 8;
+			ad = this.getmem(this.pcinc());
+			ad |= this.getmem(this.pcinc()) << 8;
 			ad2 = ad + this.x;
 			this.setmem(ad2, val);
 			return;
 		case Sid6510.mode.absy:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
-			ad |= this.getmem(this.pc++) << 8;
+			ad = this.getmem(this.pcinc());
+			ad |= this.getmem(this.pcinc()) << 8;
 			ad2 = ad + this.y;
 			if ((ad2 & 0xff00) != (ad & 0xff00)) this.cycles++;
 			this.setmem(ad2, val);
 			return;
 		case Sid6510.mode.zp:
 			this.cycles += 3;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			this.setmem(ad, val);
 			return;
 		case Sid6510.mode.zpx:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			ad += this.x;
 			this.setmem(ad & 0xff, val);
 			return;
 		case Sid6510.mode.zpy:
 			this.cycles += 4;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			ad += this.y;
 			this.setmem(ad & 0xff,val);
 			return;
 		case Sid6510.mode.indx:
 			this.cycles += 6;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			ad += this.x;
 			ad2 = this.getmem(ad & 0xff);
 			ad++;
@@ -199,7 +206,7 @@ Sid6510.prototype.putaddr = function(mode, val) {
 			return;
 		case Sid6510.mode.indy:
 			this.cycles += 5;
-			ad = this.getmem(this.pc++);
+			ad = this.getmem(this.pcinc());
 			ad2 = this.getmem(ad);
 			ad2 |= this.getmem((ad + 1) & 0xff) << 8;
 			ad = ad2 + this.y;
@@ -265,7 +272,7 @@ Sid6510.prototype.cpuParse = function() {
 	var c;
 	this.cycles = 0;
 
-	var opc = this.getmem(this.pc++);
+	var opc = this.getmem(this.pcinc());
 	var cmd = Sid6510.opcodes[opc][0];
 	var addr = Sid6510.opcodes[opc][1];
 
@@ -425,8 +432,8 @@ Sid6510.prototype.cpuParse = function() {
 			break;
 		case Sid6510.inst.jmp:
 			this.cycles += 3;
-			this.wval = this.getmem(this.pc++);
-			this.wval |= 256 * this.getmem(this.pc++);
+			this.wval = this.getmem(this.pcinc());
+			this.wval |= 256 * this.getmem(this.pcinc());
 			switch (addr) {
 				case Sid6510.mode.abs:
 					this.pc = this.wval;
@@ -442,8 +449,8 @@ Sid6510.prototype.cpuParse = function() {
 			this.cycles += 6;
 			this.push((this.pc + 2) & 0xff);
 			this.push((this.pc + 2) >> 8);
-			this.wval = this.getmem(this.pc++);
-			this.wval |= 256 * this.getmem(this.pc++);
+			this.wval = this.getmem(this.pcinc());
+			this.wval |= 256 * this.getmem(this.pcinc());
 			this.pc = this.wval;
 			break;
 		case Sid6510.inst.lda:
@@ -616,8 +623,6 @@ Sid6510.prototype.cpuJSR = function(npc, na) {
 	}
 	return ccl;
 };
-
-//Sid6510.SOMEPROP = const type val;
 
 // Flags Enum
 Sid6510.flag = Object.freeze ({
