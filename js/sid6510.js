@@ -220,7 +220,6 @@ Sid6510.prototype.putaddr = function(mode, val) {
 };
 
 Sid6510.prototype.setflags = function(flag, cond) {
-	// cond?p|=flag:p&=~flag;
 	if (cond) {
 		this.p |= flag;
 	} else {
@@ -240,7 +239,10 @@ Sid6510.prototype.pop = function() {
 
 Sid6510.prototype.branch = function(flag) {
 	var dist = this.getaddr(Sid6510.mode.imm);
+	// FIXME: while this was checked out, it still seems too complicated
 	if (dist & 0x80) { dist = 0 - ((~dist & 0xff) + 1) }        // make signed
+
+	// this here needs to be extracted for general 16-bit rounding needs
 	this.wval= this.pc + dist;
 	if (this.wval < 0) this.wval += 65536			    // FIXME: added boundary checks to wrap around. Not sure this is whats needed
 	this.wval &= 0xffff
@@ -359,7 +361,8 @@ Sid6510.prototype.cpuParse = function() {
 		case Sid6510.inst.cmp:
 			this.bval = this.getaddr(addr);
 			this.wval = this.a - this.bval;
-			if(this.wval < 0) this.wval += 256;		// Simulate 8 bit rollover not really needed?
+			// FIXME: may not actually be needed (yay 2's complement)
+			if(this.wval < 0) this.wval += 256;
 			this.setflags(Sid6510.flag.Z, !this.wval);
 			this.setflags(Sid6510.flag.N, this.wval & 0x80);
 			this.setflags(Sid6510.flag.C, this.a >= this.bval);
@@ -367,7 +370,8 @@ Sid6510.prototype.cpuParse = function() {
 		case Sid6510.inst.cpx:
 			this.bval = this.getaddr(addr);
 			this.wval = this.x - this.bval;
-			if(this.wval < 0) this.wval += 256;		// Simulate 8 bit rollover not really needed?
+			// FIXME: may not actually be needed (yay 2's complement)
+			if(this.wval < 0) this.wval += 256;
 			this.setflags(Sid6510.flag.Z, !this.wval);
 			this.setflags(Sid6510.flag.N, this.wval & 0x80);
 			this.setflags(Sid6510.flag.C, this.a >= this.bval);
@@ -375,7 +379,8 @@ Sid6510.prototype.cpuParse = function() {
 		case Sid6510.inst.cpy:
 			this.bval = this.getaddr(addr);
 			this.wval = this.y - this.bval;
-			if(this.wval < 0) this.wval += 256;		// Simulate 8 bit rollover not really needed?
+			// FIXME: may not actually be needed (yay 2's complement)
+			if(this.wval < 0) this.wval += 256;
 			this.setflags(Sid6510.flag.Z, !this.wval);
 			this.setflags(Sid6510.flag.N, this.wval & 0x80);
 			this.setflags(Sid6510.flag.C, this.a >= this.bval);
@@ -383,7 +388,8 @@ Sid6510.prototype.cpuParse = function() {
 		case Sid6510.inst.dec:
 			this.bval = this.getaddr(addr);
 			this.bval--;
-			if(this.bval < 0) this.bval += 256;		// Simulate 8 bit rollover
+			// FIXME: may be able to just mask this (yay 2's complement)
+			if(this.bval < 0) this.bval += 256;
 			this.setaddr(addr, this.bval);
 			this.setflags(Sid6510.flag.Z, !this.bval);
 			this.setflags(Sid6510.flag.N, this.bval & 0x80);
@@ -391,14 +397,16 @@ Sid6510.prototype.cpuParse = function() {
 		case Sid6510.inst.dex:
 			this.cycles += 2;
 			this.x--;
-			if(this.x < 0) this.x += 256;		// Simulate 8 bit rollover
+			// FIXME: may be able to just mask this (yay 2's complement)
+			if(this.x < 0) this.x += 256;
 			this.setflags(Sid6510.flag.Z, !this.x);
 			this.setflags(Sid6510.flag.N, this.x & 0x80);
 			break;
 		case Sid6510.inst.dey:
 			this.cycles += 2;
 			this.y--;
-			if(this.y < 0) this.y += 256;		// Simulate 8 bit rollover
+			// FIXME: may be able to just mask this (yay 2's complement)
+			if(this.y < 0) this.y += 256;
 			this.setflags(Sid6510.flag.Z, !this.y);
 			this.setflags(Sid6510.flag.N, this.y & 0x80);
 			break;
@@ -440,15 +448,15 @@ Sid6510.prototype.cpuParse = function() {
 					break;
 				case Sid6510.mode.ind:
 					this.pc = this.getmem(this.wval);
-					this.pc |= 256 * this.getmem(this.wval + 1);
+					this.pc |= 256 * this.getmem((this.wval + 1) & 0xffff);
 					this.cycles += 2;
-				break;
+					break;
 			}
 			break;
 		case Sid6510.inst.jsr:
 			this.cycles += 6;
 			this.push((this.pc + 2) & 0xff);
-			this.push((this.pc + 2) >> 8);
+			this.push(((this.pc + 2) & 0xffff) >> 8);
 			this.wval = this.getmem(this.pcinc());
 			this.wval |= 256 * this.getmem(this.pcinc());
 			this.pc = this.wval;
