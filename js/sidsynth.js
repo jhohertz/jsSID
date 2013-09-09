@@ -16,7 +16,6 @@ pFloat.multiply = function(a, b) {
 // end pFloat;
 
 
-
 // SidSynth Filter Object
 function SidSynthFilter(sidinstance) {
 	this.sid = sidinstance;
@@ -36,25 +35,15 @@ function SidSynthFilter(sidinstance) {
 
 SidSynthFilter.prototype.precalc = function() {
 	this.freq  = (4 * this.sid.ffreqhi + (this.sid.ffreqlo & 0x7)) * this.filt_mul;
-
 	if ( this.freq > pFloat.convertFromInt(1) ) {
 		this.freq = pFloat.convertFromInt(1);
 	}
-	// the above line isnt correct at all - the problem is that the filter
-	// works only up to rmxfreq/4 - this is sufficient for 44KHz but isnt
-	// for 32KHz and lower - well, but sound quality is bad enough then to
-	// neglect the fact that the filter doesnt come that high ;)
-
 	this.l_ena = SidSynth.get_bit(this.sid.ftp_vol,4);
 	this.b_ena = SidSynth.get_bit(this.sid.ftp_vol,5);
 	this.h_ena = SidSynth.get_bit(this.sid.ftp_vol,6);
 	this.v3ena = !SidSynth.get_bit(this.sid.ftp_vol,7);
 	this.vol   = (this.sid.ftp_vol & 0xf);
-
-	//filter.rez   = 1.0-0.04*(float)(sid.res_ftv >> 4);
 	this.rez   = pFloat.convertFromFloat(1.2) - pFloat.convertFromFloat(0.04) * (this.sid.res_ftv >> 4);
-
-	/* We precalculate part of the quick float operation, saves time in loop later */
 	this.rez   >>= 8;
 };
 
@@ -62,12 +51,8 @@ SidSynthFilter.prototype.precalc = function() {
 function SidSynthOsc(sidinstance, voicenum) {
 	this.sid = sidinstance;
 	this.vnum = voicenum;
-	// reference oscillator for sync/ring (0->2, 1->0, 2->1)
 	this.refosc = voicenum ? (voicenum - 1) : 2;
-
 	this.v = sidinstance.v[voicenum];
-
-	// internal oscillator def
 	this.freq	= 0;		// dword
 	this.pulse	= 0;		// dword
 	this.wave	= 0;		// byte
@@ -82,8 +67,6 @@ function SidSynthOsc(sidinstance, voicenum) {
 	this.noisepos   = 0;		// dword
 	this.noiseval   = 0xffffff;	// dword
 	this.noiseout	= 0;		// byte
-
-	// added these here
 	this.triout	= 0;		// byte
 	this.sawout	= 0;		// byte
 	this.plsout	= 0;		// byte
@@ -93,9 +76,8 @@ function SidSynthOsc(sidinstance, voicenum) {
 
 // Pre-calc values common to a sample set
 SidSynthOsc.prototype.precalc = function() {
-
 	this.pulse   = (this.v.pulse & 0xfff) << 16;
-	this.filter  = SidSynth.get_bit(this.sid.res_ftv,this.vnum);
+	this.filter  = SidSynth.get_bit(this.sid.res_ftv, this.vnum);
 	this.attack  = this.sid.attacks[this.v.ad >> 4];
 	this.decay   = this.sid.releases[this.v.ad & 0xf];
 	this.sustain = this.v.sr & 0xf0;
@@ -106,35 +88,24 @@ SidSynthOsc.prototype.precalc = function() {
 
 // Called for each oscillator for each sample
 SidSynthOsc.prototype.sampleUpdate = function() {
-
-	// update wave counter
 	this.counter = ( this.counter + this.freq) & 0xFFFFFFF;
-
-	// reset counter / noise generator if reset get_bit set
 	if (this.wave & 0x08) {
 		this.counter  = 0;
 		this.noisepos = 0;
 		this.noiseval = 0xffffff;
 	}
-
-	// sync oscillator to refosc if sync bit set
 	if (this.wave & 0x02) {
 		var thisrefosc = this.sid.osc[this.refosc];
 		if (thisrefosc.counter < thisrefosc.freq) {
-			this.counter = parseInt(thisrefosc.counter * this.freq / thisrefosc.freq);
+			this.counter = Math.floor(thisrefosc.counter * this.freq / thisrefosc.freq);
 		}
 	}
-
-	// generate waveforms with really simple algorithms
 	this.triout = (this.counter>>19) & 0xff;
 	if ( this.counter >> 27) {
 		this.triout ^= 0xff;
 	}
 	this.sawout = (this.counter >> 20) & 0xff;
-
 	this.plsout = (this.counter > this.pulse) ? 0 : 0xff;
-
-	// generate noise waveform exactly as the SID does.
 	if ( this.noisepos != ( this.counter >> 23 ) ) {
 		this.noisepos = this.counter >> 23;
 		this.noiseval = (this.noiseval << 1) | 
@@ -149,35 +120,21 @@ SidSynthOsc.prototype.sampleUpdate = function() {
 			(SidSynth.get_bit(this.noiseval, 4) << 1) |
 			(SidSynth.get_bit(this.noiseval, 2) << 0);
 	}
-
-
-	// modulate triangle wave if ringmod bit set
 	if (this.wave & 0x04) {
 		if (this.sid.osc[this.refosc].counter < 0x8000000) {
 			this.triout ^= 0xff;
 		}
 	}
-
-	// now mix the oscillators with an AND operation as stated in
-	// the SID's reference manual - even if this is completely wrong.
-	// well, at least, the $30 and $70 waveform sounds correct and there's
-	// no real solution to do $50 and $60, so who cares.
 	this.outv = 0xFF;
 	if (this.wave & 0x10) this.outv &= this.triout;
 	if (this.wave & 0x20) this.outv &= this.sawout;
 	if (this.wave & 0x40) this.outv &= this.plsout;
 	if (this.wave & 0x80) this.outv &= this.noiseout;
-
-	// now process the envelopes. the first thing about this is testing
-	// the gate bit and put the EG into attack or release phase if desired
 	if ( !(this.wave & 0x01)) {
 		this.envphase = 3;
 	} else if (this.envphase == 3) {
 		this.envphase = 0;
 	}
-
-
-	// so now process the volume according to the phase and adsr values
 	switch (this.envphase) {
 		case 0:                          // Phase 0 : Attack
 			this.envval += this.attack;
@@ -197,45 +154,24 @@ SidSynthOsc.prototype.sampleUpdate = function() {
 			if (this.envval != (this.sustain << 16)) {
 				this.envphase = 1;
 			}
-			// :) yes, thats exactly how the SID works. and maybe
-			// a music routine out there supports this, so better
-			// let it in, thanks :)
 			break;
 		case 3:                          // Phase 3 : Release
 			this.envval -= this.release;
 			if (this.envval < 0x40000) {
-				this.envval= 0x40000;
+				this.envval = 0x40000;
 			}
-			// the volume offset is because the SID does not
-			// completely silence the voices when it should. most
-			// emulators do so though and thats the main reason
-			// why the sound of emulators is too, err... emulated :)
 			break;
 	}
-
 };
 
-
-
-
-
-
 // Main SidSynth Object
-
-// Constructor
 function SidSynth(mix_frequency, memory) {
 
-	if(memory) {
-		this.mem = memory;
-	} else {
-		this.mem = null;
-	}
-
+	memory = memory || null
 	this.mix_freq = mix_frequency;	
-	this.freq_mul = parseInt(15872000 / this.mix_freq);
-	this.filt_mul = parseInt(pFloat.convertFromFloat(21.5332031) / this.mix_freq);
+	this.freq_mul = Math.floor(15872000 / this.mix_freq);
+	this.filt_mul = Math.floor(pFloat.convertFromFloat(21.5332031) / this.mix_freq);
 
-	// these are used to calc pseudo constants based on mix_freq
 	var attackTimes = new Array(
 	  0.0022528606, 0.0080099577, 0.0157696042, 0.0237795619, 0.0372963655,
 	  0.0550684591,0.0668330845, 0.0783473987, 0.0981219818, 0.244554021,
@@ -247,17 +183,15 @@ function SidSynth(mix_frequency, memory) {
 	  1.50171551, 2.40243682, 3.00189298, 9.00721405, 15.010998, 24.0182111
 	);
 
-	// calculate new table
 	this.attacks = new Array(16);
 	this.releases = new Array(16);
 	var i;
 	for ( i = 0; i < 16; i++) {
-		this.attacks[i]  = parseInt(0x1000000 / ( attackTimes[i] * this.mix_freq ) );
-		this.releases[i] = parseInt(0x1000000 / ( decayReleaseTimes[i] * this.mix_freq ) );
+		this.attacks[i]  = Math.floor(0x1000000 / ( attackTimes[i] * this.mix_freq ) );
+		this.releases[i] = Math.floor(0x1000000 / ( decayReleaseTimes[i] * this.mix_freq ) );
 	}
 
 	// Start core sid registers
-	// All start at zero
 	this.v = new Array(3);
 	for ( i = 0; i < 3; i++) {
 		this.v[i] = new Object({
@@ -278,6 +212,7 @@ function SidSynth(mix_frequency, memory) {
 	this.osc = new Array(3);
 	for ( i = 0; i < 3; i++) {
 		this.osc[i] = new SidSynthOsc(this, i);
+		this.osc[i].noiseval = 0xffffff;
 	}
 	this.filter = new SidSynthFilter(this);
 
@@ -318,57 +253,32 @@ SidSynth.prototype.generateIntoBuffer = function(count, buffer, offset) {
 		buffer[i] = 0;
 	}
 
-	var v;		// voice/osc #
-
-	// generate the samples.
-
-	// step 1: convert the not easily processable sid registers into some
-	//         more convenient and fast values (makes the thing much faster
-	//         if you process more than 1 sample value at once)
+	var v;
 	for ( v = 0; v < 3; v++) {
 		this.osc[v].precalc();
 	}
 	this.filter.precalc();
 
-	// now render the buffer
-	var bp;		// buffer pointer
-	var endbp = count * 2 + offset;	// end-of-buffer pointer
+	var bp;
+	var endbp = count * 2 + offset;
 
 	for (bp = offset; bp < endbp; bp += 2) {
 		var outo = 0;
 		var outf = 0;
 		
-		// step 2 : generate the two output signals (for filtered and non-
-		//          filtered) from the osc/eg sections
-
 		for ( v = 0; v < 3; v++) {
 			var thisosc = this.osc[v];
-			// oscillator sample activity in this method
 			thisosc.sampleUpdate();
 
-			// now route the voice output to either the non-filtered or the
-			// filtered channel and dont forget to blank out osc3 if desired
 			if ( v < 2 || this.filter.v3ena) {
 				if (thisosc.filter) {
-					outf += ( (thisosc.outv - 0x80 ) * thisosc.envval) >> 22;
+					outf += ( ( thisosc.outv - 0x80 ) * thisosc.envval) >> 22;
 				} else {
 					outo += ( ( thisosc.outv - 0x80 ) * thisosc.envval) >> 22;
 				}
 			}
 
 		}
-
-		// step 3
-		// so, now theres finally time to apply the multi-mode resonant filter
-		// to the signal. The easiest thing ist just modelling a real electronic
-		// filter circuit instead of fiddling around with complex IIRs or even
-		// FIRs ...
-		// it sounds as good as them or maybe better and needs only 3 MULs and
-		// 4 ADDs for EVERYTHING. SIDPlay uses this kind of filter, too, but
-		// Mage messed the whole thing completely up - as the rest of the
-		// emulator.
-		// This filter sounds a lot like the 8580, as the low-quality, dirty
-		// sound of the 6581 is uuh too hard to achieve :)
 
 		this.filter.h = pFloat.convertFromInt(outf) - (this.filter.b >> 8) * this.filter.rez - this.filter.l;
 		this.filter.b += pFloat.multiply(this.filter.freq, this.filter.h);
@@ -379,7 +289,9 @@ SidSynth.prototype.generateIntoBuffer = function(count, buffer, offset) {
 		if (this.filter.b_ena) outf += pFloat.convertToInt(this.filter.b);
 		if (this.filter.h_ena) outf += pFloat.convertToInt(this.filter.h);
 
-		var final_sample = parseFloat(this.generateDigi(this.filter.vol * ( outo + outf ))) / 32768;
+		// FIXME: Digi support disabled for now
+		//var final_sample = parseFloat(this.generateDigi(this.filter.vol * ( outo + outf ))) / 32768;
+		var final_sample = parseFloat(this.filter.vol * ( outo + outf ) ) / 32768;
 		buffer[bp] = final_sample;
 		buffer[bp+1] = final_sample;
 
