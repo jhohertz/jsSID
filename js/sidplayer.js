@@ -1,11 +1,11 @@
 function SidPlayer(sidFile, synth, cpu) {
 
-	//var samplesPerFrame = sidFile.speed ? 441 : 882;		// 0=50hz, 1=100hz
 	var sidspeed = sidFile.speed ? 100 : 50;		// 0=50hz, 1=100hz
 	var samplesPerFrame = synth.mix_freq / sidspeed 
 	
 	var samplesToNextFrame = 0;
 	var play_active = true;
+	//var frame_done = true;
 	
 	// now everything is setup, initialize the sid if needed
 	if (sidFile.play_addr == 0) {
@@ -22,9 +22,11 @@ function SidPlayer(sidFile, synth, cpu) {
 
 		if (play_active) {
 			cpu.cpuJSR(sidFile.play_addr,0);
-			samplesToNextFrame = samplesPerFrame;
-
+			samplesToNextFrame += samplesPerFrame;
+			//frame_done = false;
 		} else {
+			// FIXME: currently, this is not reachable really
+			
 			// no frames left
 			samplesToNextFrame = null;
 
@@ -52,7 +54,6 @@ function SidPlayer(sidFile, synth, cpu) {
 		
 		while (true) {
 			if (samplesToNextFrame != null && samplesToNextFrame <= samplesRemaining) {
-				/* generate samplesToNextFrame samples, process frame and repeat */
 				var samplesToGenerate = Math.ceil(samplesToNextFrame);
 				//console.log("next frame: " + samplesToNextFrame + ", remaining: " + samplesRemaining + ", offset: " + dataOffset + ", generate: " + samplesToGenerate);
 				if (samplesToGenerate > 0) {

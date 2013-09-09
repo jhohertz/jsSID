@@ -1649,14 +1649,14 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_of
 
 // generate count samples into buffer at offset
 SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
-        console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
+        //console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
         // FIXME: this could be done in one pass. (No?)
         for (var i = offset; i < offset + count * 2; i++) {
                 buffer[i] = 0;
         }
 	var delta = (this.cycles_per_sample * count) >> SID.const.FIXP_SHIFT;
 	var s = this.clock(delta, buffer, count, 1, offset);
-        console.log("SID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
+        //console.log("SID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
 	return s;
 };
 

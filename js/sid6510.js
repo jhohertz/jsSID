@@ -26,6 +26,7 @@ function Sid6510(mem, sid) {
 }
 
 Sid6510.prototype.getmem = function(addr) {
+	if (addr < 0 || addr > 65536) console.log("Sid6510.getmem: out of range addr: " + addr + " (caller: " + arguments.caller + ")");
 	if (addr == 0xdd0d) {
 		this.mem[addr] = 0;
 	}
@@ -33,6 +34,9 @@ Sid6510.prototype.getmem = function(addr) {
 };
 
 Sid6510.prototype.setmem = function(addr, value) {
+	if (addr < 0 || addr > 65535) console.log("Sid6510.getmem: out of range addr: " + addr + " (caller: " + arguments.caller + ")");
+	if (value < 0 || value > 255 ) console.log("Sid6510.getmem: out of range value: " + value + " (caller: " + arguments.caller + ")");
+
 	this.mem[addr] = value;
 
 	if ((addr & 0xfc00) == 0xd400 && this.sid != null) {
