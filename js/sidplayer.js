@@ -11,6 +11,7 @@ function SidPlayer(sidFile, synth, cpu) {
 	if (sidFile.play_addr == 0) {
 		cpu.cpuJSR(sidFile.init_addr, 0);
 		sidFile.play_addr = (cpu.mem[0x0315] << 8) + cpu.mem[0x0314];
+		console.log("new play_addr: ", sidFile.play_addr);
 	}
 
 	cpu.cpuJSR(sidFile.init_addr, sidFile.startsong);

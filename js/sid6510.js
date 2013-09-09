@@ -42,9 +42,10 @@ Sid6510.prototype.setmem = function(addr, value) {
 	if ((addr & 0xfc00) == 0xd400 && this.sid != null) {
 		this.sid.poke(addr & 0x1f, value);
 		// disabled for now
-		//if ((addr > 0xd418) && (addr < 0xd500)) {
+		if ((addr > 0xd418) && (addr < 0xd500)) {
+			console.log("attempted digi poke:", addr, value);
 		//	this.sid.pokeDigi(addr, value);
-		//}
+		}
 	}
 
 };
@@ -76,6 +77,7 @@ Sid6510.prototype.getaddr = function(mode) {
 			ad = this.getmem(this.pcinc());
 			ad |= 256 * this.getmem(this.pcinc());
 			ad2 = ad + this.x;
+			ad2 &= 0xffff;
 			if ((ad2 & 0xff00) != (ad & 0xff00)) this.cycles++;
 			return this.getmem(ad2);
 		case Sid6510.mode.absy:
@@ -83,6 +85,7 @@ Sid6510.prototype.getaddr = function(mode) {
 			ad = this.getmem(this.pcinc());
 			ad |= 256 * this.getmem(this.pcinc());
 			ad2 = ad + this.y;
+			ad2 &= 0xffff;
 			if ((ad2 & 0xff00) != (ad & 0xff00)) this.cycles++;
 			return this.getmem(ad2);
 		case Sid6510.mode.zp:
@@ -113,18 +116,21 @@ Sid6510.prototype.getaddr = function(mode) {
 			ad2 = this.getmem(ad);
 			ad2 |= this.getmem((ad + 1) &0xff) << 8;
 			ad = ad2 + this.y;
+			ad &= 0xffff;
 			if ((ad2 & 0xff00) != (ad & 0xff00)) this.cycles++;
 			return this.getmem(ad);
 		case Sid6510.mode.acc:
 			this.cycles += 2;
 			return this.a;
 	}
+	console.log("getaddr: attempted unhandled mode");
 	return 0;
 
 };
 
 Sid6510.prototype.setaddr = function(mode, val) {
 	var ad,ad2;
+	// FIXME: not checking pc addresses as all should be relative to a valid instruction
 	switch(mode) {
 		case Sid6510.mode.abs:
 			this.cycles += 2;
@@ -137,6 +143,7 @@ Sid6510.prototype.setaddr = function(mode, val) {
 			ad = this.getmem(this.pc - 2);
 			ad |= 256 * this.getmem(this.pc - 1);
 			ad2 = ad + this.x;
+			ad2 &= 0xffff;
 			if ((ad2 & 0xff00) != (ad & 0xff00)) this.cycles--;
 			this.setmem(ad2, val);
 			return;
@@ -155,7 +162,7 @@ Sid6510.prototype.setaddr = function(mode, val) {
 			this.a = val;
 			return;
 	}
-
+	console.log("setaddr: attempted unhandled mode");
 };
 
 Sid6510.prototype.putaddr = function(mode, val) {
@@ -172,6 +179,7 @@ Sid6510.prototype.putaddr = function(mode, val) {
 			ad = this.getmem(this.pcinc());
 			ad |= this.getmem(this.pcinc()) << 8;
 			ad2 = ad + this.x;
+			ad2 &= 0xffff;
 			this.setmem(ad2, val);
 			return;
 		case Sid6510.mode.absy:
@@ -179,6 +187,7 @@ Sid6510.prototype.putaddr = function(mode, val) {
 			ad = this.getmem(this.pcinc());
 			ad |= this.getmem(this.pcinc()) << 8;
 			ad2 = ad + this.y;
+			ad2 &= 0xffff;
 			if ((ad2 & 0xff00) != (ad & 0xff00)) this.cycles++;
 			this.setmem(ad2, val);
 			return;
@@ -214,6 +223,7 @@ Sid6510.prototype.putaddr = function(mode, val) {
 			ad2 = this.getmem(ad);
 			ad2 |= this.getmem((ad + 1) & 0xff) << 8;
 			ad = ad2 + this.y;
+			ad &= 0xffff;
 			this.setmem(ad, val);
 			return;
 		case Sid6510.mode.acc:
@@ -221,6 +231,7 @@ Sid6510.prototype.putaddr = function(mode, val) {
 			this.a = val;
 			return;
 	}
+	console.log("putaddr: attempted unhandled mode");
 };
 
 Sid6510.prototype.setflags = function(flag, cond) {
@@ -244,7 +255,12 @@ Sid6510.prototype.pop = function() {
 Sid6510.prototype.branch = function(flag) {
 	var dist = this.getaddr(Sid6510.mode.imm);
 	// FIXME: while this was checked out, it still seems too complicated
-	if (dist & 0x80) { dist = 0 - ((~dist & 0xff) + 1) }        // make signed
+	if (dist & 0x80) {
+        	// make signed
+		//var olddist = dist;
+		dist = 0 - ((~dist & 0xff) + 1);
+		//console.log("branch: adjusting to signed, old, new, flag: ", olddist, dist, flag);
+	}
 
 	// this here needs to be extracted for general 16-bit rounding needs
 	this.wval= this.pc + dist;
@@ -262,7 +278,8 @@ Sid6510.prototype.cpuReset = function() {
 	this.y	= 0;
 	this.p	= 0;
 	this.s	= 255;
-	this.pc	= this.getaddr(0xfffc);
+	this.pc	= this.getmem(0xfffc);
+	this.pc |= 256 * this.getmem(0xfffd);
 }
 
 Sid6510.prototype.cpuResetTo = function(npc) {
@@ -613,6 +630,8 @@ Sid6510.prototype.cpuParse = function() {
 			this.setflags(Sid6510.flag.Z, !this.a);
 			this.setflags(Sid6510.flag.N, this.a & 0x80);
 			break;
+		default:
+		console.log("cpuParse: attempted unhandled instruction, opcode: ", opc);
 	}
 	return this.cycles;
 
