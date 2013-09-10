@@ -3,7 +3,6 @@
 	<head>
 		<script src="js/stream.js"></script>
 		<script src="js/jsxcompressor.js"></script>
-		<script src="js/siddmpfile.js"></script>
 		<script src="js/siddmpplayer.js"></script>
 		<script src="js/resid.js"></script>
 		<script src="js/audioplayer.js"></script>
@@ -12,14 +11,14 @@
 			
 			function play(file) {
 				Stream.loadRemoteFile(file, function(data) {
-					sidDmpFile = SidDmpFile(data);
 					//synth = new SID(audio.sampleRate);
                                         synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_FAST);
                                         //synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE);
                                         //synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_INTERPOLATE);
                                         //synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_RESAMPLE_FAST);
 
-					sidDmpPlayer = new SidDmpPlayer(sidDmpFile, synth);
+					sidDmpPlayer = new SidDmpPlayer(synth);
+					sidDmpPlayer.loadFileFromData(data);
 					audio.setGenerator(sidDmpPlayer);
 					audio.start();
 				})

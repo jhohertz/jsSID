@@ -1,13 +1,27 @@
 
-function SidDmpPlayer(sidDmpFile, synth) {
-	this.siddmp = sidDmpFile;
+function SidDmpPlayer(synth) {
+	this.siddmp = null;
 	this.synth = synth;
         this.samplesPerFrame = synth.mix_freq / 50;
-
 	this.nextFrameNum = 0;
 	this.samplesToNextFrame = 0;
-	
+};
 
+// load the .dmp sid dump file format
+// 60 frames per second of 25 bytes, representing the sid register states
+SidDmpPlayer.prototype.loadFileFromData = function(data) {
+
+	var stream = Stream(data);
+
+	this.siddmp = new Array;
+	while (!stream.eof()) {
+		var frame = stream.read(25);
+		this.siddmp.push(frame);
+	}
+
+	// reset state
+	this.nextFrameNum = 0;
+	this.samplesToNextFrame = 0;
 	// get the first frame
 	this.getNextFrame();
 };

@@ -2,7 +2,6 @@
 <html>
 	<head>
 		<script src="js/stream.js"></script>
-		<script src="js/siddmpfile.js"></script>
 		<script src="js/siddmpplayer.js"></script>
 		<script src="js/sidsynth.js"></script>
 		<script src="js/audioplayer.js"></script>
@@ -11,9 +10,9 @@
 			
 			function play(file) {
 				Stream.loadRemoteFile(file, function(data) {
-					sidDmpFile = SidDmpFile(data);
 					synth = new SidSynth(audio.sampleRate);
-					sidDmpPlayer = new SidDmpPlayer(sidDmpFile, synth);
+					sidDmpPlayer = new SidDmpPlayer(synth);
+					sidDmpPlayer.loadFileFromData(data)
 					audio.setGenerator(sidDmpPlayer);
 					audio.start();
 				})
