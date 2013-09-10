@@ -1,9 +1,9 @@
 
 // constructor
-function SidPlayer(sidFile, synth, cpu) {
+function SidPlayer(sidFile, synth) {
 	this.sidfile = sidFile;
 	this.synth = synth;
-	this.cpu = cpu;
+	this.cpu = new Sid6510(this.sidfile.mem, this.synth);
 	this.sidspeed = this.sidfile.speed ? 100 : 50;		// 0=50hz, 1=100hz
 	this.samplesPerFrame = synth.mix_freq / this.sidspeed 
 	
