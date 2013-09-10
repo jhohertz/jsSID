@@ -18,7 +18,7 @@
 					synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_FAST);
 					//synth = new SID(audio.sampleRate, SID.const.CLK_PAL, SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE);
 					cpu = new Sid6510(sidFile.mem, synth);
-					sidPlayer = SidPlayer(sidFile, synth, cpu);
+					sidPlayer = new SidPlayer(sidFile, synth, cpu);
 					audio.setGenerator(sidPlayer);
 					audio.start();
 				})

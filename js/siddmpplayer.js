@@ -1,96 +1,91 @@
+
 function SidDmpPlayer(sidDmpFile, synth) {
+	this.siddmp = sidDmpFile;
+	this.synth = synth;
+        this.samplesPerFrame = synth.mix_freq / 50;
 
-        var samplesPerFrame = synth.mix_freq / 50
-
-	var nextFrameNum = 0;
-	var samplesToNextFrame = 0;
+	this.nextFrameNum = 0;
+	this.samplesToNextFrame = 0;
 	
-	// loads the next frame of dump data, setting the sid registers
-	// also handle end condition
 
-	function getNextFrame() {
-		var nextFrame = null;
-
-		if (nextFrameNum < sidDmpFile.length) {
-			// have a frame to give
-			var nextFrame = sidDmpFile[nextFrameNum];
-			nextFrameNum++;
-			
-			// poke frame registers
-			var stream = Stream(nextFrame);
-			var count = 0;
-			while ((!stream.eof()) && count < 25) {
-				var val = stream.readInt8();
-				synth.poke(count, val);
-				count++;
-			}
-			samplesToNextFrame += samplesPerFrame;
-
-		} else {
-			// no frames left
-			nextFrameNum = null;
-			samplesToNextFrame = null;
-
-			// FIXME: this should be a feature of SidSynth we call
-			// zero out sid registers at end to prevent noise
-			var count = 0;
-			while ( count < 25) {
-				synth.poke(count, 0);
-				count++;
-			}
-
-			self.finished = true;
-		}
-	}
-	
 	// get the first frame
-	getNextFrame();
-	
-	// generator
-	function generate(samples) {
-		//console.log("Generating " + samples + " samples (" + samplesToNextFrame + " to next frame)");
-		var data = new Array(samples*2);
-		var samplesRemaining = samples;
-		var dataOffset = 0;
-		
-		while (true) {
-			if (samplesToNextFrame != null && samplesToNextFrame <= samplesRemaining) {
-				/* generate samplesToNextFrame samples, process frame and repeat */
-				var samplesToGenerate = Math.ceil(samplesToNextFrame);
-				//console.log("next frame: " + samplesToNextFrame + ", remaining: " + samplesRemaining + ", offset: " + dataOffset + ", generate: " + samplesToGenerate);
-				if (samplesToGenerate > 0) {
-					var generated = synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
-					dataOffset += generated * 2;
-					samplesRemaining -= generated;
-					samplesToNextFrame -= generated;
-				}
-				
-				getNextFrame();
-			} else {
-				/* generate samples to end of buffer */
-				if (samplesRemaining > 0) {
-					var generated = synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
-					samplesToNextFrame -= generated;
-				}
-				break;
-			}
-		}
-		//console.log("data: ", data);
-		return data;
-	}
+	this.getNextFrame();
+};
 
-	
-	function replay(audio) {
-		console.log('replay');
-		audio.write(generate(44100));
-		setTimeout(function() {replay(audio)}, 10);
+// loads the next frame of dump data, setting the sid registers
+// also handle end condition
+SidDmpPlayer.prototype.getNextFrame = function() {
+	var nextFrame = null;
+
+	if (this.nextFrameNum < this.siddmp.length) {
+		// have a frame to give
+		var nextFrame = this.siddmp[this.nextFrameNum];
+		this.nextFrameNum++;
+			
+		// poke frame registers
+		var stream = Stream(nextFrame);
+		var count = 0;
+		while ((!stream.eof()) && count < 25) {
+			var val = stream.readInt8();
+			this.synth.poke(count, val);
+			count++;
+		}
+		this.samplesToNextFrame += this.samplesPerFrame;
+	} else {
+		// no frames left
+		this.nextFrameNum = null;
+		this.samplesToNextFrame = null;
+
+		// FIXME: this should be a feature of SidSynth we call
+		// zero out sid registers at end to prevent noise
+		var count = 0;
+		while ( count < 25) {
+			this.synth.poke(count, 0);
+			count++;
+		}
+
+		this.finished = true;
 	}
+}
 	
-	var self = {
-		'replay': replay,
-		'generate': generate,
-		'finished': false
+	
+// generator
+SidDmpPlayer.prototype.generate = function (samples) {
+	//console.log("Generating " + samples + " samples (" + samplesToNextFrame + " to next frame)");
+	var data = new Array(samples*2);
+	var samplesRemaining = samples;
+	var dataOffset = 0;
+		
+	while (true) {
+		if (this.samplesToNextFrame != null && this.samplesToNextFrame <= samplesRemaining) {
+			/* generate samplesToNextFrame samples, process frame and repeat */
+			var samplesToGenerate = Math.ceil(this.samplesToNextFrame);
+			//console.log("next frame: " + samplesToNextFrame + ", remaining: " + samplesRemaining + ", offset: " + dataOffset + ", generate: " + samplesToGenerate);
+			if (samplesToGenerate > 0) {
+				var generated = this.synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
+				dataOffset += generated * 2;
+				samplesRemaining -= generated;
+				this.samplesToNextFrame -= generated;
+			}
+				
+			this.getNextFrame();
+		} else {
+			/* generate samples to end of buffer */
+			if (samplesRemaining > 0) {
+				var generated = this.synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
+				this.samplesToNextFrame -= generated;
+			}
+			break;
+		}
 	}
-	return self;
+	//console.log("data: ", data);
+	return data;
 }
 
+// maybe flash uses this?
+//function replay(audio) {
+//	console.log('replay');
+//	audio.write(generate(44100));
+//	setTimeout(function() {replay(audio)}, 10);
+//}
+	
