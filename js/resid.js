@@ -1662,7 +1662,7 @@ SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
 
 SID.prototype.generate = function(samples) {
         var data = new Array(samples*2);
-        generateIntoBuffer(samples, data, 0);
+        this.generateIntoBuffer(samples, data, 0);
         return data;
 };
 

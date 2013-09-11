@@ -357,7 +357,7 @@ SidSynth.prototype.generateDigi = function(sIn) {
 
 SidSynth.prototype.generate = function(samples) {
 	var data = new Array(samples*2);
-	generateIntoBuffer(samples, data, 0);
+	this.generateIntoBuffer(samples, data, 0);
 	return data;
 };
 

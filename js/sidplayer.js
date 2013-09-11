@@ -75,10 +75,11 @@ SidPlayer.prototype.loadFileFromData = function(data) {
 
 	this.finished = false;
 	this.samplesToNextFrame = 0;
-	this.ready = true;
 
 	// get the first frame
 	this.getNextFrame();
+
+	this.ready = true;
 };
 
 SidPlayer.prototype.getNextFrame = function() {
@@ -98,17 +99,23 @@ SidPlayer.prototype.getNextFrame = function() {
 			this.synth.poke(count, 0);
 			count++;
 		}
-		self.finished = true;
+		this.finished = true;
 	}
-}
+};
 	
+SidPlayer.prototype.generate = function(samples) {
+	var data = new Array(samples*2);
+	this.generateIntoBuffer(samples, data, 0);
+	return data;
+};
 	
 // generator
-SidPlayer.prototype.generate = function(samples) {
+SidPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffset) {
+	if(!this.ready) return [0.0,0.0];
+	dataOffset = dataOffset || 0;
+
 	//console.log("Generating " + samples + " samples (" + samplesToNextFrame + " to next frame)");
-	var data = new Array(samples*2);
 	var samplesRemaining = samples;
-	var dataOffset = 0;
 		
 	while (true) {
 		if (this.samplesToNextFrame != null && this.samplesToNextFrame <= samplesRemaining) {
@@ -132,7 +139,7 @@ SidPlayer.prototype.generate = function(samples) {
 		}
 	}
 	//console.log("data: ", data);
-	return data;
+	//return data;
 }
 
 	

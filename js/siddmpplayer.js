@@ -5,6 +5,8 @@ function SidDmpPlayer(synth) {
         this.samplesPerFrame = synth.mix_freq / 50;
 	this.nextFrameNum = 0;
 	this.samplesToNextFrame = 0;
+	this.finished = false;
+	this.ready = false;
 };
 
 // load the .dmp sid dump file format
@@ -24,6 +26,7 @@ SidDmpPlayer.prototype.loadFileFromData = function(data) {
 	this.samplesToNextFrame = 0;
 	// get the first frame
 	this.getNextFrame();
+	this.ready = true;
 };
 
 // loads the next frame of dump data, setting the sid registers
@@ -62,13 +65,19 @@ SidDmpPlayer.prototype.getNextFrame = function() {
 	}
 }
 	
+SidDmpPlayer.prototype.generate = function (samples) {
+        var data = new Array(samples*2);
+        this.generateIntoBuffer(samples, data, 0);
+        return data;
+}
 	
 // generator
-SidDmpPlayer.prototype.generate = function (samples) {
+SidDmpPlayer.prototype.generateIntoBuffer = function (samples, data, dataOffset) {
+	if(!this.ready) return [0.0,0.0];
+
+	dataOffset = dataOffset || 0;
 	//console.log("Generating " + samples + " samples (" + samplesToNextFrame + " to next frame)");
-	var data = new Array(samples*2);
 	var samplesRemaining = samples;
-	var dataOffset = 0;
 		
 	while (true) {
 		if (this.samplesToNextFrame != null && this.samplesToNextFrame <= samplesRemaining) {
@@ -93,7 +102,7 @@ SidDmpPlayer.prototype.generate = function (samples) {
 		}
 	}
 	//console.log("data: ", data);
-	return data;
+	//return data;
 }
 
 // maybe flash uses this?
