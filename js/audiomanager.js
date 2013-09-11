@@ -192,7 +192,7 @@ AudioMixer.prototype.takeSamples = function(samples) {
 };
 
 function AudioManager(opts) {
-	if (!opts) opts = {};
+	//if (!opts) opts = {};
 	this.channels = 2;					// for now, all we support (possibly forever)
 	this.sampleBufferSize = 16384;
 	this.sampleBufferLength = 32768;
@@ -203,6 +203,15 @@ function AudioManager(opts) {
 	// FIXME: this goes I think
 	this.requestStop = false;
 	this.detectMode();
+}
+
+AudioManager.INSTANCE = null;
+
+AudioManager.get = function() {
+	if(AudioManager.INSTANCE == null) {
+		AudioManager.INSTANCE = new AudioManager();
+	} 
+	return AudioManager.Instance
 }
 
 AudioManager.mode = Object.freeze({ firefox:{}, webkit:{}, flash:{} });

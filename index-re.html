@@ -9,10 +9,10 @@
 		<script src="js/sidplayer.js"></script>
 		<script src="js/audiomanager.js"></script>
 		<script>
-			var audio = new AudioManager();
 
 			function play(file) {
 				Stream.loadRemoteFile(file, function(data) {
+					var audio = AudioManager.get();
 					sidPlayer = new SidPlayer( { quality: SID.quality.good });
 					sidPlayer.loadFileFromData(data);
 					audio.setGenerator(sidPlayer);
