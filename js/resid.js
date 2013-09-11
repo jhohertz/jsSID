@@ -1081,6 +1081,29 @@ SID.sampling_method = Object.freeze({
 	SAMPLE_RESAMPLE_FAST: {}
 });
 
+SID.quality = Object.freeze({
+	low: ["TinySID", null],
+	good: ["ReSID Fast", SID.sampling_method.SAMPLE_FAST],
+	better: ["ReSID Interpolate", SID.sampling_method.SAMPLE_INTERPOLATE],
+	best: ["ReSID Resample/Interpolate", SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE],
+	broken: ["ReSID Resample/Fast", SID.sampling_method.SAMPLE_RESAMPLE_FAST]
+	// FIXME: Make above less broken
+});
+
+SID.factory = function(opts) {
+	opts = opts || {};
+	var quality = opts.quality || SID.quality.good;
+	var clock = opts.clock || SID.const.CLK_PAL;
+	var sampleRate = opts.sampleRate || audio.sampleRate;
+	var newsid;
+	if(quality == SID.quality.low) {
+		newsid = new SidSynth(audio.sampleRate);
+	} else {
+		newsid = new SID(audio.sampleRate, clock, quality[1]);
+	}
+	return newsid;
+}
+
 SID.prototype.set_chip_model = function(model) {
 	for (var i = 0; i < 3; i++) {
 		this.voice[i].set_chip_model(model);

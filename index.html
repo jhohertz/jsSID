@@ -2,7 +2,9 @@
 <html>
 	<head>
 		<script src="js/stream.js"></script>
+		<script src="js/jsxcompressor.js"></script>
 		<script src="js/sidsynth.js"></script>
+		<script src="js/resid.js"></script>
 		<script src="js/sid6510.js"></script>
 		<script src="js/sidplayer.js"></script>
 		<script src="js/audiomanager.js"></script>
@@ -11,8 +13,7 @@
 
 			function play(file) {
 				Stream.loadRemoteFile(file, function(data) {
-					synth = new SidSynth(audio.sampleRate);
-					sidPlayer = new SidPlayer(synth);
+					sidPlayer = new SidPlayer( { quality: SID.quality.low });
 					sidPlayer.loadFileFromData(data)
 					audio.setGenerator(sidPlayer);
 					audio.start();

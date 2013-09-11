@@ -1,8 +1,12 @@
 
-function SidDmpPlayer(synth) {
+function SidDmpPlayer(opts) {
+        opts = opts || {};
+        var quality = opts.quality || SID.quality.good;
+        var clock = opts.clock || SID.const.CLK_PAL;
+	this.synth = SID.factory({ quality: quality, clock: clock });
+
 	this.siddmp = null;
-	this.synth = synth;
-        this.samplesPerFrame = synth.mix_freq / 50;
+        this.samplesPerFrame = this.synth.mix_freq / 50;
 	this.nextFrameNum = 0;
 	this.samplesToNextFrame = 0;
 	this.finished = false;

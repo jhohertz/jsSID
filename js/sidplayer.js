@@ -45,14 +45,15 @@ SidFile.prototype.loadFileFromData = function(data) {
 };
 
 // constructor
-function SidPlayer(synth) {
-	this.synth = synth;
-
+function SidPlayer(opts) {
+        opts = opts || {};
+        var quality = opts.quality || SID.quality.good;
+        var clock = opts.clock || SID.const.CLK_PAL;
 	this.ready = false;
-	
-	this.play_active = true;
 	this.finished = false;
+	this.play_active = true;
 	this.samplesToNextFrame = 0;
+        this.synth = SID.factory({ quality: quality, clock: clock });
 };
 
 
