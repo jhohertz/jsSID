@@ -12,11 +12,9 @@
 
 			function play(file) {
 				Stream.loadRemoteFile(file, function(data) {
-					var audio = AudioManager.get();
 					sidPlayer = new SidPlayer( { quality: SID.quality.low });
 					sidPlayer.loadFileFromData(data)
-					audio.setGenerator(sidPlayer);
-					audio.start();
+					sidPlayer.play()
 				})
 			}
 		</script>

@@ -67,7 +67,6 @@ function AudioMixer(opts) {
 	this.finished = false;
 };
 
-// FIXME: paused not used, state is read only between running and idle detection for now
 AudioMixer.state = Object.freeze({ running:{}, idle:{} });
 
 AudioMixer.prototype.setGain = function(gainl, gainr) {
@@ -147,19 +146,21 @@ function AudioManager(opts) {
 	this.channels = 2;					// for now, all we support (possibly forever)
 	this.sampleBufferSize = 16384;
 	this.sampleBufferLength = 32768;
+	this.state = AudioManager.state.idle;
+	this.last_state = AudioManager.state.idle;
 	// hard-coded in Flash player, webKit usually overrides this to 48000 in detect
 	this.sampleRate = 44100;
 	this.detectMode();
-
-
 	this.mixer = new AudioMixer({
 		bufsize: this.sampleBufferSize,
 		mixrate: this.sampleRate
 	})
+	this.monitor();
 }
 
-AudioManager.INSTANCE = null;
+AudioManager.state = Object.freeze({ running:{}, idle:{}, shutdown:{} });
 
+AudioManager.INSTANCE = null;
 AudioManager.get = function() {
 	if(AudioManager.INSTANCE == null) {
 		AudioManager.INSTANCE = new AudioManager();
@@ -168,10 +169,6 @@ AudioManager.get = function() {
 }
 
 AudioManager.mode = Object.freeze({ firefox:{}, webkit:{}, flash:{} });
-
-AudioManager.prototype.setSampleRate = function(samplerate) {
-	this.sampleRate = samplerate;
-};
 
 AudioManager.prototype.detectMode = function() {
 	var audioElement = new Audio();
@@ -191,69 +188,105 @@ AudioManager.prototype.detectMode = function() {
 		this.webkitAudioContext = new webkitAudio();
 		this.sampleRate = this.webkitAudioContext.sampleRate;
 		this.bufferFillLength = 16384;
+		this.node = this.webkitAudioContext.createJavaScriptNode(this.sampleBufferSize, 0, this.channels);
+		var that = this;
+		this.node.onaudioprocess = function(e) { that.webkitProcess(e) };
 		return this.mode;
 	}
 	// Fall back to creating flash player
 	this.mode = AudioManager.mode.flash;
 	this.bufferFillLength = Math.floor(this.latency * this.sampleRate / 1000);
-	this.flashInserted = false;
+	var c = document.createElement('div');
+	c.innerHTML = '<embed type="application/x-shockwave-flash" id="da-swf" src="da.swf" width="8" height="8" allowScriptAccess="always" style="position: fixed; left:-10px;" />';
+	//var bodynode = document.getElementsByTagName('body')[0];
+	document.body.appendChild(c);
+	this.swf = document.getElementById('da-swf');
 	return this.mode;
 
-}
+};
 
-AudioManager.prototype.setGenerator = function(generator) {
-	return this.mixer.addSource(generator);
-}
+AudioManager.prototype.shutdown = function() {
+	this.state = AudioManager.state.shutdown;
+};
 
-AudioManager.prototype.stop = function() {
-	switch (this.mode) {
-		case AudioManager.mode.webkit:
-			this.node.disconnect();
-			break;
-		case AudioManager.mode.flash:
-			this.swf.stop();
-			break;
-	}
-}
+AudioManager.prototype.monitor = function() {
+	var that = this;
 
-AudioManager.prototype.start = function() {
-	console.log("starting audio");
-	switch (this.mode) {
-		case AudioManager.mode.firefox:
-			this.firefoxCheckBuffer();
-			break;
-		case AudioManager.mode.webkit:
-			this.node = this.webkitAudioContext.createJavaScriptNode(this.sampleBufferSize, 0, this.channels);
-			var that = this;
-			this.node.onaudioprocess = function(e) { that.webkitProcess(e) };
-			// start
-			this.node.connect(this.webkitAudioContext.destination);
-			break;
-		case AudioManager.mode.flash:
-			this.flashInsert();
-			this.flashCheckReady();
-			break;
+	// disconnect things if transitioning out of running state
+	if(this.state != AudioManager.state.running && this.last_state == AudioManager.state.running) {
+		switch (this.mode) {
+			case AudioManager.mode.webkit:
+				this.node.disconnect();
+				break;
+			case AudioManager.mode.flash:
+				this.swf.stop();
+				break;
+		}
+	} 
+	if(this.state == AudioManager.state.shutdown) {
+		return;		 // break out of monitor by returning without reschedule
 	}
-}
+	
+	if(this.state == AudioManager.state.idle) {
+		if(this.mixer.scan_active()) {
+			this.state = AudioManager.state.running;
+		}
+	}
 
-AudioManager.prototype.firefoxCheckBuffer = function() {
-	if (this.buffer.length) {
-		var written = this.audioElement.mozWriteAudio(this.buffer);
-		this.buffer = this.buffer.slice(written);
+	if(this.state == AudioManager.state.running) {
+		// check if we need to connect things
+		if(this.last_state != AudioManager.state.running) {
+			console.log("starting audio");
+			switch (this.mode) {
+				case AudioManager.mode.webkit:
+					this.node.connect(this.webkitAudioContext.destination);
+					break;
+				case AudioManager.mode.flash:
+					this.swf.start();
+					break;
+			}
+		}
+
+		// all up and running
+
+		switch (this.mode) {
+			case AudioManager.mode.firefox:
+				if (this.buffer.length) {
+					var written = this.audioElement.mozWriteAudio(this.buffer);
+					this.buffer = this.buffer.slice(written);
+				}
+				if (this.buffer.length < this.ff_minBufferLength && !this.mixer.finished) {
+					this.buffer = this.buffer.concat(this.mixer.generate(this.bufferFillLength));
+				}
+				break;
+			case AudioManager.mode.flash:
+				if (this.swf.write && this.swf.bufferedDuration() < this.latency) {
+					var data = this.mixer.generate(this.bufferFillLength);
+					var out = new Array(data.length);
+					for (var i = data.length-1; i != 0; i--) {
+						out[i] = Math.floor(data[i]*32768);
+					}
+					this.swf.write(out.join(' '));
+				}
+				break;
+		}
+	} 
+
+	this.last_state = this.state;
+
+	// go idle if mixer is
+	if (this.mixer.state == AudioMixer.state.idle) {
+		this.state = AudioManager.state.idle;
 	}
-	if (this.buffer.length < this.ff_minBufferLength && !this.mixer.finished) {
-		this.buffer = this.buffer.concat(this.mixer.generate(this.bufferFillLength));
-	}
-	if (!this.mixer.finished || this.buffer.length) {
-		var that = this;
-		setTimeout(function() { that.firefoxCheckBuffer() }, that.checkInterval);
-	}
-}
+
+	// reschedule
+	setTimeout(function() { that.monitor() }, that.checkInterval);
+};
 
 AudioManager.prototype.webkitProcess = function(e) {
 	// FIXME. This shouldn't be controlled by the mixer I think.
-	if (this.mixer.finished) {
-		this.node.disconnect();
+	if ( this.state == AudioManager.state.idle ) {
+		//this.node.disconnect();
 		return;
 	}
 			
@@ -261,54 +294,12 @@ AudioManager.prototype.webkitProcess = function(e) {
 	var dataRight = e.outputBuffer.getChannelData(1);
 
 	var generate = this.mixer.generate(this.sampleBufferSize);
-	console.log("webkit process: generated", generate.length, "samples");
+	//console.log("webkit process: generated", generate.length, "samples");
 
 	for (var i = 0; i < (generate.length / 2); ++i) {
 		dataLeft[i] = generate[i*2];
 		dataRight[i] = generate[i*2+1];
 	}
 	
-}
-
-AudioManager.prototype.flashInsert = function() {
-	if(!this.flashInserted) {
-		this.flashInserted = true;
-		var c = document.createElement('div');
-		c.innerHTML = '<embed type="application/x-shockwave-flash" id="da-swf" src="da.swf" width="8" height="8" allowScriptAccess="always" style="position: fixed; left:-10px;" />';
-		//var bodynode = document.getElementsByTagName('body')[0];
-		document.body.appendChild(c);
-		this.swf = document.getElementById('da-swf');
-	}
-}
-
-AudioManager.prototype.flashWrite = function(data) {
-	var out = new Array(data.length);
-	for (var i = data.length-1; i != 0; i--) {
-		out[i] = Math.floor(data[i]*32768);
-	}
-	return this.swf.write(out.join(' '));
-}
-
-AudioManager.prototype.flashCheckBuffer = function() {
-	if (this.swf.bufferedDuration() < this.latency) {
-		this.flashWrite(this.mixer.generate(this.bufferFillLength));
-	}
-	if (!this.mixer.finished) {
-		var that = this;
-		setTimeout( function() { that.flashCheckBuffer(); }, this.checkInterval);
-	}
-}
-
-AudioManager.prototype.flashCheckReady = function() {
-	if (this.swf.write) {
-		this.flashCheckBuffer();
-	} else {
-		var that = this;
-		setTimeout(function() { that.flashCheckReady(); }, 10);
-	}
-}
-
-AudioManager.prototype.flashBufferedDuration = function() {
-	return this.swf.bufferedDuration();
 }
 

@@ -3,13 +3,25 @@ function SidDmpPlayer(opts) {
         opts = opts || {};
         var quality = opts.quality || SID.quality.good;
         var clock = opts.clock || SID.const.CLK_PAL;
+	this.am = AudioManager.get();
 	this.synth = SID.factory({ quality: quality, clock: clock });
 
 	this.siddmp = null;
         this.samplesPerFrame = this.synth.mix_freq / 50;
 	this.nextFrameNum = 0;
 	this.samplesToNextFrame = 0;
+
+	// state signaled to audiomanager
 	this.finished = false;
+	this.ready = false;
+	this.am_id = this.am.mixer.addSource(this);
+};
+
+SidDmpPlayer.prototype.play = function() {
+	this.ready = true;
+};
+
+SidDmpPlayer.prototype.stop = function() {
 	this.ready = false;
 };
 
@@ -66,6 +78,7 @@ SidDmpPlayer.prototype.getNextFrame = function() {
 		}
 
 		this.finished = true;
+		this.ready = false;
 	}
 }
 	

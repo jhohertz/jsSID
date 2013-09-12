@@ -49,13 +49,24 @@ function SidPlayer(opts) {
         opts = opts || {};
         var quality = opts.quality || SID.quality.good;
         var clock = opts.clock || SID.const.CLK_PAL;
-	this.ready = false;
-	this.finished = false;
+	this.am = AudioManager.get();
 	this.play_active = true;
 	this.samplesToNextFrame = 0;
         this.synth = SID.factory({ quality: quality, clock: clock });
+
+	// state signaled to audio manager
+	this.ready = false;
+	this.finished = false;
+	this.am_id = this.am.mixer.addSource(this);
 };
 
+SidPlayer.prototype.play = function() {
+        this.ready = true;
+};
+
+SidPlayer.prototype.stop = function() {
+        this.ready = false;
+};
 
 // load the .sid file into a 64k memory image array
 SidPlayer.prototype.loadFileFromData = function(data) {
@@ -80,7 +91,6 @@ SidPlayer.prototype.loadFileFromData = function(data) {
 	// get the first frame
 	this.getNextFrame();
 
-	this.ready = true;
 };
 
 SidPlayer.prototype.getNextFrame = function() {

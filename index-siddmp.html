@@ -10,11 +10,9 @@
 		<script>
 			function play(file) {
 				Stream.loadRemoteFile(file, function(data) {
-					var audio = AudioManager.get();
 					sidDmpPlayer = new SidDmpPlayer({ quality: SID.quality.low });
 					sidDmpPlayer.loadFileFromData(data)
-					audio.setGenerator(sidDmpPlayer);
-					audio.start();
+					sidDmpPlayer.play()
 				})
 			}
 		</script>
