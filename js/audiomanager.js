@@ -3,22 +3,13 @@
 function AudioSource(opts) {
 	if (!opts) opts = {};
 	this.id = opts.myid;
-	this.state = AudioSource.state.enabled;
 	this.generator = opts.generator;
-	this.channels = opts.channels || 2;				// We'll support 1 or 2 here only
-	this.bufsize = opts.bufsize;		// match buffer to upstream in terms of stereo output
-	this.buflength= this.bufsize * this.channels;
-	this.mixrate = opts.mixrate;
-	this.buffer = new Array();
+	this.channels  = opts.channels || 2;				// We'll support 1 or 2 here only
+	this.bufsize   = opts.bufsize;					// match buffer to upstream in terms of stereo output
+	this.buflength = this.bufsize * this.channels;
+	this.buffer = new Array(this.buflength);
 	this.setGain(opts.gain || 0);
 };
-
-AudioSource.state = new Object({ 
-	enabled: {},			// normal running
-	disabled: {},			// "paused"
-	killed: {},			// dead but still flushing samples
-	zombie: {}			// completely dead, ready to be reaped
-});
 
 AudioSource.prototype.setGain = function(gainl, gainr) {
 	this.gain_l = gainl;
@@ -27,63 +18,34 @@ AudioSource.prototype.setGain = function(gainl, gainr) {
 	this.gain_factor_r = Math.pow(10.0, (this.gain_r - 3.0) / 20.0);
 }
 
-AudioSource.prototype.fillBuffer = function() {
-	//console.log("AudioSource fillBuffer: buffer max size: ", this.bufsize , ", buffer length: ", this.buffer.length);
-	if(this.buffer.length < this.buflength && !this.generator.finished) {
-		//var samplesToGenerate = this.bufsize - (this.buffer.length / this.channels);
-		var samplesToGenerate = this.bufsize;
-		//console.log("AudioSource fillBuffer: generating ", samplesToGenerate, "samples, buffer length: ", this.buffer.length);
+AudioSource.prototype.fill = function(samples) {
+	this.generator.generateIntoBuffer(samples, this.buffer, 0);
 
-		//var newsamp = this.generator.generate(samplesToGenerate);
-		//var newsamp = this.generator.generateIntoBuffer(samplesToGenerate, this.buffer, this.buffer.length);
-		//this.buffer = this.buffer.concat(newsamp);
-		this.generator.generateIntoBuffer(samplesToGenerate, this.buffer, this.buffer.length);
-		//console.log("AudioSource fillBuffer: after buffer length: ", this.buffer.length);
-	} 
-	if (this.generator.finished) {
-		this.state = AudioSource.state.killed;
-	}
-}
-
-AudioSource.prototype.takeSample = function() {
-	if(this.state == AudioSource.state.disabled) {
-		console.log("AudioSource takeSample: bailing due to disabled");
-		return([0.0,0.0]);
-	}
-
-	//console.log("AudioSource takeSample entry: buffer length: ", this.buffer.length)
-	// fill if empty
-	if(this.buffer.length < this.channels) {
-		if(this.state == AudioSource.state.enabled) {
-			//console.log("AudioSource takeSample: filling buffer")
-			this.fillBuffer();
-		} else if(this.state == AudioSource.state.killed) {
-			// transition to the undead
-			this.state = AudioSource.state.zombie;
-			console.log("AudioSource takeSample: bailing due to ZOMBIES");
-			return([0.0,0.0]);
+	//console.log("AudioSource fill: generating", samples, "samples");
+	// fill w/ zeros
+	if(this.buffer.length < samples * this.channels) {
+		var start = this.buffer.length;
+		var end = samples * this.channels;
+		for (var i = start; i <= end; i++) {
+			this.buffer[i] = 0;
 		}
-		// if *still* empty or insufficient samples
-		if(this.buffer.length < this.channels) {
-			//console.log("AudioSource takeSample: flagging zombie")
-			// idle... how to set this in state? not a zombie.
-			//this.state = AudioSource.state.zombie;
-			console.log("AudioSource takeSample: bailing due to inability to fill buffer");
-			return([0.0,0.0]);
+		if(this.generator.ready) {
+			console.log("WARN: AudioSource still ready after shorting buffer full");
 		}
 	}
-	//console.log("AudioSource takeSample: buffer length: ", this.buffer.length)
-	// at least one sample available
-	//if(this.buffer.length >= this.channels)
-	var left = this.buffer.shift();
-	var right;
+
+	// Stereoize if needed
 	if(this.channels == 1) {
-		right = left;
-	} else {
-		right = this.buffer.shift();
+		var idx_m = samples - 1;		// do it backwards so it can be done in-buffer
+		var idx_s = samples * 2 - 1;
+		while(idx_m >= 0) {
+			var s = this.buffer[idx_m];
+			this.buffer[idx_s] = s;
+			this.buffer[idx_s - 1] = s;
+			idx_s -= 2;
+			idx_m--;
+		}
 	}
-	// does not clip. cliping handled at the end
-	return([left * this.gain_factor_l, right * this.gain_factor_r]);
 }
 
 function AudioMixer(opts) {
@@ -94,10 +56,12 @@ function AudioMixer(opts) {
 	this.buflength = opts.bufsize * 2;
 	this.setGain(0);
 	this.state = AudioMixer.state.idle;
-	this.buffer = new Array();
+	this.buffer = null;					// record of last generated buffer
 
 	this.next_src_id = 0;
+
 	this.sources = {};
+	this.active_sources = [];
 
 	// FIXME: this is in for compatability for the moment
 	this.finished = false;
@@ -130,79 +94,64 @@ AudioMixer.prototype.delSource = function(id) {
 	delete this.sources[id];
 };
 
-AudioMixer.prototype.fillBuffer = function() {
-	// do some maintenance and skip idle source up front
-	var active_sources = [];
+AudioMixer.prototype.scan_active = function() {
+	var active = [];
 	for(var s in this.sources) {
-		if(this.sources[s].state == AudioSource.state.zombie) {
-			console.log("ZOMBIE DESTROY");
-			this.delSource(s);
-		} else if(this.sources[s].state != AudioSource.state.disabled && this.sources[s].generator.ready ) {
-			active_sources.push(s);
+		if(this.sources[s].generator.ready ) {
+			active.push(s);
 		}
 	}	
-	if(this.buffer.length < this.buflength ) {
-		//var samplesToGenerate = this.bufsize - (this.buffer.length / this.channels);
-		var samplesToGenerate = this.bufsize;
-		//console.log("AudioMixer fillBuffer: generating ", samplesToGenerate, ", samples, buffer length: ", this.buffer.length, "active sources: ", active_sources.length);
-		for(var i = 0; i < samplesToGenerate; i++) {
-			var left = 0;
-			var right = 0;
-			for(var s in active_sources) {
-				if(this.sources[s].state != AudioSource.state.disabled ||  this.sources[s].state != AudioSource.state.zombie) {
-					var sam = this.sources[s].takeSample();
-					left += sam[0];
-					right += sam[1];
-				}
-			}	
-			// apply gain to combined waveform
-			left *= this.gain_factor_l;
-			right *= this.gain_factor_r;
-			// clip as we push
-			this.buffer.push(Math.min(1.0, Math.max(-1.0, left)));
-			this.buffer.push(Math.min(1.0, Math.max(-1.0, right)));
+	this.active_sources = active;
+	return active.length > 0
+}
+
+// new generator
+AudioMixer.prototype.generate = function(samples) {
+	//if(samples > this.bufsize) return null;		// error
+	this.scan_active();
+
+	if(this.active_sources.length == 0) return null;
+	for(var s in this.active_sources) {
+		this.sources[s].fill(samples);
+	}
+
+	var buf = new Array(samples * 2);
+	var idx = 0;
+	for( var i = 0; i < samples; i++ ) {
+		var l=0,r=0;
+		for(var s in this.active_sources) {
+			var src = this.sources[s];
+			l += src.buffer[idx] * src.gain_factor_l;
+			r += src.buffer[idx+1] * src.gain_factor_r;
 		}
-	} 
-};
-
-AudioMixer.prototype.takeSamples = function(samples) {
-
-	samples = samples <= this.bufsize ? samples : this.bufsize;
-	//console.log("AudioMixer takeSamples: asked for: ", samples, ", samples, buffer length: ", this.buffer.length);
-
-	if(this.buffer.length < samples * this.channels ) {
-		this.fillBuffer();
+		// apply master gain and clip to output buffer
+		buf[idx++] = Math.min(1.0, Math.max(-1.0, l * this.gain_factor_l));
+		buf[idx++] = Math.min(1.0, Math.max(-1.0, r * this.gain_factor_r));
 	}
-	if(this.buffer.length < samples * this.channels ) {
-		samples = this.buffer.length / this.channels;
-	}
-	if(this.buffer.length >= this.channels ) {
-		//console.log("AudioMixer: giving ", samples, ", samples, buffer length: ", this.buffer.length);
-		this.state = AudioMixer.state.running;
-		var ret = this.buffer.slice(0, samples * 2);
-		this.buffer = this.buffer.slice(samples * 2);
-		return ret;
-	} else {
-		this.state = AudioMixer.state.idle;
-		// we're idle. how best to handle this? FIXME
-		// return a lowly sample for now
-		console.log("AudioMixer takeSamples: bailing due to inability to fill buffer");
-		return([0.0, 0.0]);
-	}
-};
+	// kept mostly for inspection
+	this.buffer = buf;
+	return buf;
+}
+
+
+////////////////// AudioManager
 
 function AudioManager(opts) {
 	//if (!opts) opts = {};
+	this.latency = 1000;
+	this.checkInterval = this.latency / 10; 						// in ms
 	this.channels = 2;					// for now, all we support (possibly forever)
 	this.sampleBufferSize = 16384;
 	this.sampleBufferLength = 32768;
-	this.minBufferLength = this.sampleBufferLength / 2;			// low samples mark
-	// hard-coded in Flash player, webKit usually overrides this to 48000
-	this.setSampleRate(44100);
-
-	// FIXME: this goes I think
-	this.requestStop = false;
+	// hard-coded in Flash player, webKit usually overrides this to 48000 in detect
+	this.sampleRate = 44100;
 	this.detectMode();
+
+
+	this.mixer = new AudioMixer({
+		bufsize: this.sampleBufferSize,
+		mixrate: this.sampleRate
+	})
 }
 
 AudioManager.INSTANCE = null;
@@ -211,19 +160,13 @@ AudioManager.get = function() {
 	if(AudioManager.INSTANCE == null) {
 		AudioManager.INSTANCE = new AudioManager();
 	} 
-	return AudioManager.Instance
+	return AudioManager.INSTANCE
 }
 
 AudioManager.mode = Object.freeze({ firefox:{}, webkit:{}, flash:{} });
 
 AudioManager.prototype.setSampleRate = function(samplerate) {
 	this.sampleRate = samplerate;
-	this.minDuration = Math.ceil(this.minBufferLength / this.sampleRate * 1000);		// low duration mark
-	this.checkInterval = this.minDuration / 4; 						// in ms
-	this.mixer = new AudioMixer({
-		bufsize: this.sampleBufferSize,
-		mixrate: this.sampleRate
-	})
 };
 
 AudioManager.prototype.detectMode = function() {
@@ -234,17 +177,21 @@ AudioManager.prototype.detectMode = function() {
 		audioElement.mozSetup(this.channels, this.sampleRate);
 		// other vars related to this backend
 		this.buffer = []; /* data generated but not yet written */
+		this.ff_minBufferLength = Math.floor(this.latency * this.sampleRate * 2 / 1000);			// low samples mark
+		this.bufferFillLength = Math.floor(this.latency * this.sampleRate / 1000);
 		return this.mode;
 	}
 	var webkitAudio = window.AudioContext || window.webkitAudioContext;
 	if (webkitAudio) {
 		this.mode = AudioManager.mode.webkit;
 		this.webkitAudioContext = new webkitAudio();
-		this.setSampleRate(this.webkitAudioContext.sampleRate);
+		this.sampleRate = this.webkitAudioContext.sampleRate;
+		this.bufferFillLength = 16384;
 		return this.mode;
 	}
 	// Fall back to creating flash player
 	this.mode = AudioManager.mode.flash;
+	this.bufferFillLength = Math.floor(this.latency * this.sampleRate / 1000);
 	this.flashInserted = false;
 	return this.mode;
 
@@ -263,7 +210,6 @@ AudioManager.prototype.stop = function() {
 			this.swf.stop();
 			break;
 	}
-	this.requestStop = true;
 }
 
 AudioManager.prototype.start = function() {
@@ -291,12 +237,12 @@ AudioManager.prototype.firefoxCheckBuffer = function() {
 		var written = this.audioElement.mozWriteAudio(this.buffer);
 		this.buffer = this.buffer.slice(written);
 	}
-	if (this.buffer.length < this.minBufferLength && !this.mixer.finished) {
-		this.buffer = this.buffer.concat(this.mixer.takeSamples(this.sampleBufferSize));
+	if (this.buffer.length < this.ff_minBufferLength && !this.mixer.finished) {
+		this.buffer = this.buffer.concat(this.mixer.generate(this.bufferFillLength));
 	}
-	if (!this.requestStop && (!this.mixer.finished || this.buffer.length)) {
+	if (!this.mixer.finished || this.buffer.length) {
 		var that = this;
-		setTimeout(function() { that.firefoxCheckBuffer() }, this.checkInterval);
+		setTimeout(function() { that.firefoxCheckBuffer() }, that.checkInterval);
 	}
 }
 
@@ -310,8 +256,8 @@ AudioManager.prototype.webkitProcess = function(e) {
 	var dataLeft = e.outputBuffer.getChannelData(0);
 	var dataRight = e.outputBuffer.getChannelData(1);
 
-	var generate = this.mixer.takeSamples(this.sampleBufferSize);
-	//console.log("webkit process: generated", generate.length, "samples");
+	var generate = this.mixer.generate(this.sampleBufferSize);
+	console.log("webkit process: generated", generate.length, "samples");
 
 	for (var i = 0; i < (generate.length / 2); ++i) {
 		dataLeft[i] = generate[i*2];
@@ -340,10 +286,10 @@ AudioManager.prototype.flashWrite = function(data) {
 }
 
 AudioManager.prototype.flashCheckBuffer = function() {
-	if (this.swf.bufferedDuration() < this.minDuration) {
-		this.flashWrite(this.mixer.takeSamples(this.sampleBufferSize));
+	if (this.swf.bufferedDuration() < this.latency) {
+		this.flashWrite(this.mixer.generate(this.bufferFillLength));
 	}
-	if (!this.requestStop && !this.mixer.finished) {
+	if (!this.mixer.finished) {
 		var that = this;
 		setTimeout( function() { that.flashCheckBuffer(); }, this.checkInterval);
 	}

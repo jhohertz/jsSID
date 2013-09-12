@@ -1094,12 +1094,12 @@ SID.factory = function(opts) {
 	opts = opts || {};
 	var quality = opts.quality || SID.quality.good;
 	var clock = opts.clock || SID.const.CLK_PAL;
-	var sampleRate = opts.sampleRate || audio.sampleRate;
+	var sampleRate = opts.sampleRate || AudioManager.get().sampleRate;
 	var newsid;
 	if(quality == SID.quality.low) {
-		newsid = new SidSynth(audio.sampleRate);
+		newsid = new SidSynth(sampleRate);
 	} else {
-		newsid = new SID(audio.sampleRate, clock, quality[1]);
+		newsid = new SID(sampleRate, clock, quality[1]);
 	}
 	return newsid;
 }
