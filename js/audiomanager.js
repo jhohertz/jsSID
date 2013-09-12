@@ -55,7 +55,7 @@ function AudioMixer(opts) {
 	this.bufsize = opts.bufsize;
 	this.buflength = opts.bufsize * 2;
 	this.setGain(0);
-	this.state = AudioMixer.state.idle;
+	this.state = AudioMixer.state.running;
 	this.buffer = null;					// record of last generated buffer
 
 	this.next_src_id = 0;
@@ -68,7 +68,7 @@ function AudioMixer(opts) {
 };
 
 // FIXME: paused not used, state is read only between running and idle detection for now
-AudioMixer.state = Object.freeze({ running:{}, idle:{}, paused:{} });
+AudioMixer.state = Object.freeze({ running:{}, idle:{} });
 
 AudioMixer.prototype.setGain = function(gainl, gainr) {
 	this.gain_l = gainl;
@@ -102,12 +102,16 @@ AudioMixer.prototype.scan_active = function() {
 		}
 	}	
 	this.active_sources = active;
-	return active.length > 0
+	if(active.length > 0) {
+		this.state = AudioMixer.state.running;
+		return true;
+	}
+	this.state = AudioMixer.state.idle;
+	return false;
 }
 
 // new generator
 AudioMixer.prototype.generate = function(samples) {
-	//if(samples > this.bufsize) return null;		// error
 	this.scan_active();
 
 	if(this.active_sources.length == 0) return null;
