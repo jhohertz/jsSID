@@ -28,7 +28,7 @@ SidDmpPlayer.prototype.stop = function() {
 // load the .dmp sid dump file format
 // 60 frames per second of 25 bytes, representing the sid register states
 SidDmpPlayer.prototype.loadFileFromData = function(data) {
-
+	this.stop();
 	var stream = Stream(data);
 
 	this.siddmp = new Array;
@@ -42,7 +42,6 @@ SidDmpPlayer.prototype.loadFileFromData = function(data) {
 	this.samplesToNextFrame = 0;
 	// get the first frame
 	this.getNextFrame();
-	this.ready = true;
 };
 
 // loads the next frame of dump data, setting the sid registers

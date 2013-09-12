@@ -70,6 +70,7 @@ SidPlayer.prototype.stop = function() {
 
 // load the .sid file into a 64k memory image array
 SidPlayer.prototype.loadFileFromData = function(data) {
+	this.stop();
 	this.sidfile = new SidFile(data);
 
 	this.sidspeed = this.sidfile.speed ? 100 : 50;		// 0=50hz, 1=100hz
