@@ -1090,18 +1090,19 @@ SID.quality = Object.freeze({
 	// FIXME: Make above less broken
 });
 
-SID.factory = function(opts) {
-	opts = opts || {};
-	var quality = opts.quality || SID.quality.good;
-	var clock = opts.clock || SID.const.CLK_PAL;
-	var sampleRate = opts.sampleRate || AudioManager.get().sampleRate;
-	var newsid;
-	if(quality == SID.quality.low) {
-		newsid = new SidSynth(sampleRate);
+SID.factory = function(f_opts) {
+	console.log("factory", f_opts);
+	f_opts = f_opts || {};
+	var f_quality = f_opts.quality || SID.quality.good;
+	var f_clock = f_opts.clock || SID.const.CLK_PAL;
+	var f_sampleRate = f_opts.sampleRate || AudioManager.get().sampleRate;
+	var f_newsid;
+	if(f_quality == SID.quality.low) {
+		f_newsid = new SidSynth(f_sampleRate);
 	} else {
-		newsid = new SID(sampleRate, clock, quality[1]);
+		f_newsid = new SID(f_sampleRate, f_clock, f_quality[1]);
 	}
-	return newsid;
+	return f_newsid;
 }
 
 SID.prototype.set_chip_model = function(model) {

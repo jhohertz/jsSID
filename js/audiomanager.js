@@ -188,7 +188,7 @@ AudioManager.prototype.detectMode = function() {
 		this.webkitAudioContext = new webkitAudio();
 		this.sampleRate = this.webkitAudioContext.sampleRate;
 		this.bufferFillLength = 16384;
-		this.node = this.webkitAudioContext.createJavaScriptNode(this.sampleBufferSize, 0, this.channels);
+		this.node = this.webkitAudioContext.createJavaScriptNode(this.sampleBufferSize, this.channels, this.channels);
 		var that = this;
 		this.node.onaudioprocess = function(e) { that.webkitProcess(e) };
 		return this.mode;

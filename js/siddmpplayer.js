@@ -1,10 +1,11 @@
 
 function SidDmpPlayer(opts) {
+	console.log("player opts", opts);
         opts = opts || {};
-        var quality = opts.quality || SID.quality.good;
-        var clock = opts.clock || SID.const.CLK_PAL;
+        this.quality = opts.quality || SID.quality.good;
+        this.clock = opts.clock || SID.const.CLK_PAL;
 	this.am = AudioManager.get();
-	this.synth = SID.factory({ quality: quality, clock: clock });
+	this.synth = SID.factory({ quality: this.quality, clock: this.clock });
 
 	this.siddmp = null;
         this.samplesPerFrame = this.synth.mix_freq / 50;

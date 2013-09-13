@@ -19,6 +19,9 @@
                         <a href="javascript:void(sidDmpPlayer.play())">PLAY</a>
                         <a href="javascript:void(sidDmpPlayer.stop())">STOP</a>
                 </div>
+                <div id="err">
+                        Not Loaded
+                </div>
                 <script src="js/stream.js"></script>
                 <script src="js/jsxcompressor.js"></script>
                 <script src="js/sidsynth.js"></script>
@@ -28,15 +31,41 @@
                 <script src="js/audiomanager.js"></script>
                 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
                 <script>
-                        sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.good });
+                        sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.low });
 
                         function play(file) {
+				unlock();
                                 $("#status").text("Loading: " + file);
                                 Stream.loadRemoteFile(file, function(data) {
                                         sidDmpPlayer.loadFileFromData(data)
                                         $("#status").text("Loaded: " + file);
                                 })
                         }
+
+                        function addStatus(msg) {
+                                jQuery("#err").append("<br/>" + msg);
+                        };
+
+                        window.onerror = function(errorMsg, url, lineNumber) {
+                                addStatus("JAVASCRIPT ERROR: " + errorMsg + " (" + url + ", line " + lineNumber + ")");
+                        }
+
+                        // IOS fidling...
+                        var unlocked = false
+                        function unlock() {
+                                var iOS = ( navigator.userAgent.match(/(iPad|iPhone|iPod)/g) ? true : false );
+                                //if(!iOS || unlocked) return;
+                                if(unlocked) return;
+                                var am = AudioManager.get();
+                                var buffer = am.webkitAudioContext.createBuffer(1, 1, 22050);
+                                var source = am.webkitAudioContext.createBufferSource();
+                                source.buffer = buffer;
+                                source.connect(am.webkitAudioContext.destination);
+                                source.noteOn(0);
+                                unlocked = true;
+                        }
+
+
                 </script>
 
 	</body>
