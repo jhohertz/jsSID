@@ -107,6 +107,7 @@ SidPlayer.prototype.loadFileFromData = function(data) {
 		console.log("new play_addr: ", this.sidfile.play_addr);
 	}
 
+	this.synth.poke(24,15);		// turn up volume
 	this.cpu.cpuJSR(this.sidfile.init_addr, this.sidfile.startsong);
 
 	this.finished = false;
@@ -120,6 +121,12 @@ SidPlayer.prototype.loadFileFromData = function(data) {
 SidPlayer.prototype.getNextFrame = function() {
 	if (this.play_active) {
 		this.cpu.cpuJSR(this.sidfile.play_addr, 0);
+		// check if CIA timing is used, and adjust
+
+                var nRefreshCIA = Math.floor(20000 * (this.cpu.getmem(0xdc04) | (this.cpu.getmem(0xdc05) << 8)) / 0x4c00);
+                if ((nRefreshCIA==0) || (this.sidspeed == 0)) nRefreshCIA = 20000;
+		this.samplesPerFrame = Math.floor(this.synth.mix_freq * nRefreshCIA / 1000000);
+
 		this.samplesToNextFrame += this.samplesPerFrame;
 	} else {
 		// FIXME: currently, this is not reachable really
