@@ -1,4 +1,7 @@
 
+// this is currently deprecated/dormant
+// may bring back to get mixing at a later time, coded to sink.js
+// do not use for now.
 
 function AudioSource(opts) {
 	if (!opts) opts = {};
