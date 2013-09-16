@@ -8,7 +8,14 @@
 		<a href="javascript:void(play('sid/dmp/Autumn.dmp'))">Autumn.dmp</a> |
 		<a href="javascript:void(play('sid/dmp/Monty.dmp'))">Monty.dmp</a> |
 		<a href="javascript:void(play('sid/dmp/Robocop3.dmp'))">Robocop3.dmp</a> |
-		<a href="javascript:void(play('sid/dmp/Mr_Marvellous.dmp'))">Mr_Marvellous.dmp</a>
+		<a href="javascript:void(play('sid/dmp/Mr_Marvellous.dmp'))">Mr_Marvellous.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Lightforce.dmp'))">Lightforce.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Speedball.dmp'))">Speedball.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Super_Mario_Land.dmp'))">Super_Mario_Land.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Cybernoid.dmp'))">Cybernoid.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Batman2.dmp'))">Batman2.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Nemesis.dmp'))">Nemesis.dmp</a> |
+		<a href="javascript:void(play('sid/dmp/Enforcer.dmp'))">Enforcer.dmp</a>
                 </div>
                 <hr/>
                 <div id="status">
@@ -18,6 +25,8 @@
                 <div>
                         <a href="javascript:void(sidDmpPlayer.play())">PLAY</a>
                         <a href="javascript:void(sidDmpPlayer.stop())">STOP</a>
+                </div>
+                <div id="err">
                 </div>
                 <script src="js/stream.js"></script>
                 <script src="js/jsxcompressor.js"></script>
@@ -30,13 +39,23 @@
                 <script>
 
                         function play(file) {
-                        	sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.good });
+                        	sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.best });
                                 $("#status").text("Loading: " + file);
                                 Stream.loadRemoteFile(file, function(data) {
                                         sidDmpPlayer.loadFileFromData(data)
                                         $("#status").text("Loaded: " + file);
                                 })
                         }
+
+                        function addStatus(msg) {
+                                jQuery("#err").append("<br/>" + msg);
+                        };
+
+                        window.onerror = function(errorMsg, url, lineNumber) {
+                                addStatus("JAVASCRIPT ERROR: " + errorMsg + " (" + url + ", line " + lineNumber + ")");
+                        }
+
+
                 </script>
 
 	</body>

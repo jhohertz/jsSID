@@ -245,7 +245,7 @@ function SidSynth(mix_frequency, memory) {
 
 	// converted from statics in generateDigi
 	this.sample = 0;
-	this.last_sample = 0;
+	//this.last_sample = 0;
 
 
 };
@@ -322,7 +322,7 @@ SidSynth.prototype.generateDigi = function(sIn) {
 		if (this.fracPos > this.mix_freq) {
 			this.fracPos %= this.mix_freq;
 
-			this.last_sample = this.sample;
+			//this.last_sample = this.sample;
 
 			if (this.sample_order == 0) {
 				this.sample_nibble++;
