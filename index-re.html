@@ -4,7 +4,7 @@
 	</head>
 	<body>
 		<div>
-		Click a file to play. Works in Firefox/Chrome on desktop only. (for now)<br>
+		Click a file to play. Works in Firefox/Chrome on desktop + ios6<br>
 		You'll need to reload to stop/change songs for the moment as well.<br>
 		<a href="javascript:void(play('sid/real/Last_Wader.sid'))">Last_Wader.sid</a><br>
 		<a href="javascript:void(play('sid/real/Sweet_JB.sid'))">Sweet_JB.sid</a><br>
@@ -12,7 +12,7 @@
 		<a href="javascript:void(play('sid/real/Voe_Taevas.sid'))">Voe_Taevas.sid</a><br>
 		<a href="javascript:void(play('sid/real/Monty_on_the_Run.sid'))">Monty_on_the_Run.sid</a><br>
 		<a href="javascript:void(play('sid/real/Anal_ogue.sid'))">Anal_ogue.sid</a><br>
-		<a href="javascript:void(play('sid/real/Azmagutah_8580.sid'))">Azmagutah_8580.sid</a><br>
+		<a href="javascript:void(play('sid/real/Azmagutah_6581.sid'))">Azmagutah_6581.sid</a><br>
 		<a href="javascript:void(play('sid/real/Electronic_Transfer.sid'))">Electronic_Transfer.sid</a><br>
 		<a href="javascript:void(play('sid/real/National_Park_GRAVE_DANGER.sid'))">National_Park_GRAVE_DANGER.sid</a><br>
 		</div>
@@ -25,24 +25,38 @@
 			<a href="javascript:void(sidPlayer.play())">PLAY</a>
 			<a href="javascript:void(sidPlayer.stop())">STOP</a>
 		</div>
+		<hr/>
+		<div id="err">
+		</div>
 		<script src="js/stream.js"></script>
 		<script src="js/jsxcompressor.js"></script>
 		<script src="js/sidsynth.js"></script>
 		<script src="js/resid.js"></script>
 		<script src="js/sid6510.js"></script>
 		<script src="js/sidplayer.js"></script>
-		<script src="js/audiomanager.js"></script>
+		<script src="js/sink.js"></script>
 		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 		<script>
-			sidPlayer = new SidPlayer( { quality: SID.quality.good });
 
 			function play(file) {
+				sidPlayer = new SidPlayer({ quality: SID.quality.good });
 				$("#status").text("Loading: " + file);
 				Stream.loadRemoteFile(file, function(data) {
 					sidPlayer.loadFileFromData(data)
 					$("#status").text("Loaded: " + file);
 				})
 			}
+
+			function addStatus(msg) {
+				jQuery("#err").append("<br/>" + msg);
+			};
+		
+			window.onerror = function(errorMsg, url, lineNumber) {
+				addStatus("JAVASCRIPT ERROR: " + errorMsg + " (" + url + ", line " + lineNumber + ")");
+			}
+
+
+
 		</script>
 	</body>
 </html>

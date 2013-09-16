@@ -28,13 +28,12 @@
                 <script src="js/resid.js"></script>
                 <script src="js/sid6510.js"></script>
                 <script src="js/siddmpplayer.js"></script>
-                <script src="js/audiomanager.js"></script>
+                <script src="js/sink.js"></script>
                 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
                 <script>
-                        sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.low });
 
                         function play(file) {
-				unlock();
+                        	sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.low });
                                 $("#status").text("Loading: " + file);
                                 Stream.loadRemoteFile(file, function(data) {
                                         sidDmpPlayer.loadFileFromData(data)
@@ -48,21 +47,6 @@
 
                         window.onerror = function(errorMsg, url, lineNumber) {
                                 addStatus("JAVASCRIPT ERROR: " + errorMsg + " (" + url + ", line " + lineNumber + ")");
-                        }
-
-                        // IOS fidling...
-                        var unlocked = false
-                        function unlock() {
-                                var iOS = ( navigator.userAgent.match(/(iPad|iPhone|iPod)/g) ? true : false );
-                                //if(!iOS || unlocked) return;
-                                if(unlocked) return;
-                                var am = AudioManager.get();
-                                var buffer = am.webkitAudioContext.createBuffer(1, 1, 22050);
-                                var source = am.webkitAudioContext.createBufferSource();
-                                source.buffer = buffer;
-                                source.connect(am.webkitAudioContext.destination);
-                                source.noteOn(0);
-                                unlocked = true;
                         }
 
 

@@ -1095,7 +1095,7 @@ SID.factory = function(f_opts) {
 	f_opts = f_opts || {};
 	var f_quality = f_opts.quality || SID.quality.good;
 	var f_clock = f_opts.clock || SID.const.CLK_PAL;
-	var f_sampleRate = f_opts.sampleRate || AudioManager.get().sampleRate;
+	var f_sampleRate = f_opts.mixrate || 44100;
 	var f_newsid;
 	if(f_quality == SID.quality.low) {
 		f_newsid = new SidSynth(f_sampleRate);

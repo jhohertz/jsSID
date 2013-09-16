@@ -4,18 +4,40 @@ function SidDmpPlayer(opts) {
         opts = opts || {};
         this.quality = opts.quality || SID.quality.good;
         this.clock = opts.clock || SID.const.CLK_PAL;
-	this.am = AudioManager.get();
-	this.synth = SID.factory({ quality: this.quality, clock: this.clock });
+	// state signaled to audiomanager
+	this.finished = false;
+	this.ready = false;
+
+	var that = this;
+	this.sink = Sink(function(b, c){that.sinkCall(b,c);});
+
+	this.synth = SID.factory({
+		quality: this.quality,
+		clock: this.clock,
+		mixrate: this.sink.sampleRate
+	});
 
 	this.siddmp = null;
         this.samplesPerFrame = this.synth.mix_freq / 50;
 	this.nextFrameNum = 0;
 	this.samplesToNextFrame = 0;
 
-	// state signaled to audiomanager
-	this.finished = false;
-	this.ready = false;
-	this.am_id = this.am.mixer.addSource(this);
+};
+
+// to use sink vs audiomanager
+SidDmpPlayer.prototype.sinkCall = function(buffer, channels) {
+	if(this.ready) {
+		var written = this.generateIntoBuffer(buffer.length, buffer, 0);
+		if (written == 0) {
+				//play_mod(random_mod_href());
+				this.ready = false;
+				this.finished = true;
+				return 0;
+		} else {
+				return written;
+		}
+	}
+
 };
 
 SidDmpPlayer.prototype.play = function() {
@@ -93,8 +115,10 @@ SidDmpPlayer.prototype.generateIntoBuffer = function (samples, data, dataOffset)
 	if(!this.ready) return [0.0,0.0];
 
 	dataOffset = dataOffset || 0;
+	var dataOffsetStart = dataOffset;
+
 	//console.log("Generating " + samples + " samples (" + samplesToNextFrame + " to next frame)");
-	var samplesRemaining = samples;
+	var samplesRemaining = samples / 2;
 		
 	while (true) {
 		if (this.samplesToNextFrame != null && this.samplesToNextFrame <= samplesRemaining) {
@@ -118,8 +142,7 @@ SidDmpPlayer.prototype.generateIntoBuffer = function (samples, data, dataOffset)
 			break;
 		}
 	}
-	//console.log("data: ", data);
-	//return data;
+	return dataOffset - dataOffsetStart;
 }
 
 // maybe flash uses this?

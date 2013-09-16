@@ -25,12 +25,12 @@
                 <script src="js/resid.js"></script>
                 <script src="js/sid6510.js"></script>
                 <script src="js/siddmpplayer.js"></script>
-                <script src="js/audiomanager.js"></script>
+                <script src="js/sink.js"></script>
                 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
                 <script>
-                        sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.best });
 
                         function play(file) {
+                        	sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.good });
                                 $("#status").text("Loading: " + file);
                                 Stream.loadRemoteFile(file, function(data) {
                                         sidDmpPlayer.loadFileFromData(data)

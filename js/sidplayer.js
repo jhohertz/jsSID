@@ -49,16 +49,39 @@ function SidPlayer(opts) {
         opts = opts || {};
         this.quality = opts.quality || SID.quality.good;
         this.clock = opts.clock || SID.const.CLK_PAL;
-	this.am = AudioManager.get();
+
 	this.play_active = true;
 	this.samplesToNextFrame = 0;
-        this.synth = SID.factory({ quality: this.quality, clock: this.clock });
-
 	// state signaled to audio manager
 	this.ready = false;
 	this.finished = false;
-	this.am_id = this.am.mixer.addSource(this);
+
+        var that = this;
+        this.sink = Sink(function(b, c){that.sinkCall(b,c);});
+        this.synth = SID.factory({
+                quality: this.quality,
+                clock: this.clock,
+                mixrate: this.sink.sampleRate
+        });
+
 };
+
+// to use sink vs audiomanager
+SidPlayer.prototype.sinkCall = function(buffer, channels) {
+        if(this.ready) {
+                var written = this.generateIntoBuffer(buffer.length, buffer, 0);
+                if (written == 0) {
+                                //play_mod(random_mod_href());
+                                this.ready = false;
+                                this.finished = true;
+                                return 0;
+                } else {
+                                return written;
+                }
+        }
+
+};
+
 
 SidPlayer.prototype.play = function() {
         this.ready = true;
@@ -125,9 +148,10 @@ SidPlayer.prototype.generate = function(samples) {
 SidPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffset) {
 	if(!this.ready) return [0.0,0.0];
 	dataOffset = dataOffset || 0;
+	var dataOffsetStart = dataOffset;
 
 	//console.log("Generating " + samples + " samples (" + samplesToNextFrame + " to next frame)");
-	var samplesRemaining = samples;
+	var samplesRemaining = samples / 2;
 		
 	while (true) {
 		if (this.samplesToNextFrame != null && this.samplesToNextFrame <= samplesRemaining) {
@@ -145,13 +169,15 @@ SidPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffset) {
 			/* generate samples to end of buffer */
 			if (samplesRemaining > 0) {
 				var generated = this.synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
+				dataOffset += generated * 2;
+				samplesRemaining -= generated;
 				this.samplesToNextFrame -= generated;
 			}
 			break;
 		}
 	}
 	//console.log("data: ", data);
-	//return data;
+	return dataOffset - dataOffsetStart;
 }
 
 	
