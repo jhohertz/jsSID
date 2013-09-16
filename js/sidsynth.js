@@ -5,7 +5,7 @@ pFloat.convertFromInt = function(i) {
 	return (i<<16);
 };
 pFloat.convertFromFloat = function(f) {
-	return parseInt(parseFloat(f) * 65536);
+	return Math.floor(parseFloat(f) * 65536);
 };
 pFloat.convertToInt = function(i) {
 	return (i>>16);
@@ -34,7 +34,9 @@ function SidSynthFilter(sidinstance) {
 };
 
 SidSynthFilter.prototype.precalc = function() {
-	this.freq  = (4 * this.sid.ffreqhi + (this.sid.ffreqlo & 0x7)) * this.filt_mul;
+	//this.freq  = (4 * this.sid.ffreqhi + (this.sid.ffreqlo & 0x7)) * this.filt_mul;
+	this.freq  = (16 * this.sid.ffreqhi + (this.sid.ffreqlo & 0x7)) * this.filt_mul;
+
 	if ( this.freq > pFloat.convertFromInt(1) ) {
 		this.freq = pFloat.convertFromInt(1);
 	}
@@ -88,6 +90,7 @@ SidSynthOsc.prototype.precalc = function() {
 
 // Called for each oscillator for each sample
 SidSynthOsc.prototype.sampleUpdate = function() {
+
 	this.counter = ( this.counter + this.freq) & 0xFFFFFFF;
 	if (this.wave & 0x08) {
 		this.counter  = 0;
@@ -130,11 +133,14 @@ SidSynthOsc.prototype.sampleUpdate = function() {
 	if (this.wave & 0x20) this.outv &= this.sawout;
 	if (this.wave & 0x40) this.outv &= this.plsout;
 	if (this.wave & 0x80) this.outv &= this.noiseout;
-	if ( !(this.wave & 0x01)) {
-		this.envphase = 3;
-	} else if (this.envphase == 3) {
-		this.envphase = 0;
-	}
+
+	// MOVED to poke (for now)
+	//if ( !(this.wave & 0x01)) {
+	//	this.envphase = 3;
+	//} else if (this.envphase == 3) {
+	//	this.envphase = 0;
+	//}
+
 	switch (this.envphase) {
 		case 0:                          // Phase 0 : Attack
 			this.envval += this.attack;
@@ -290,8 +296,8 @@ SidSynth.prototype.generateIntoBuffer = function(count, buffer, offset) {
 		if (this.filter.h_ena) outf += pFloat.convertToInt(this.filter.h);
 
 		// FIXME: Digi support disabled for now
-		//var final_sample = parseFloat(this.generateDigi(this.filter.vol * ( outo + outf ))) / 32768;
-		var final_sample = parseFloat(this.filter.vol * ( outo + outf ) ) / 32768;
+		var final_sample = parseFloat(this.generateDigi(this.filter.vol * ( outo + outf ))) / 32768;
+		//var final_sample = parseFloat(this.filter.vol * ( outo + outf ) ) / 32768;
 		buffer[bp] = final_sample;
 		buffer[bp+1] = final_sample;
 
@@ -364,9 +370,9 @@ SidSynth.prototype.generate = function(samples) {
 SidSynth.prototype.poke = function(reg, val) {
 
 	var voice = 0;
-	if ((reg >= 0) && (reg <= 6)) voice=0;
+	//if ((reg >= 0) && (reg <= 6)) voice=0;
 	if ((reg >= 7) && (reg <=13)) {voice=1; reg-=7;}
-	if ((reg >= 14) && (reg <=20)) {voice=2; reg-=14;}
+	else if ((reg >= 14) && (reg <=20)) {voice=2; reg-=14;}
 
 	switch (reg) {
 		case 0:
@@ -383,6 +389,8 @@ SidSynth.prototype.poke = function(reg, val) {
 			break;
 		case 4:
 			this.v[voice].wave = val;
+			if ((val & 0x01) == 0) this.osc[voice].envphase = 3;
+			else if (this.osc[voice].envphase==3) this.osc[voice].envphase = 0;
 			break;
 		case 5:
 			this.v[voice].ad = val;

@@ -1166,6 +1166,11 @@ SID.prototype.poke = function(offset, value) {
 	this.write(offset, value);
 };
 
+SID.prototype.pokeDigi = function(offset, value) {
+	// not yet implemented
+	return;
+};
+
 SID.prototype.write = function(offset, value) {
 	bus_value = value;
 	bus_value_ttl = 0x2000;

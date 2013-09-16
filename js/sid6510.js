@@ -27,25 +27,25 @@ function Sid6510(mem, sid) {
 
 Sid6510.prototype.getmem = function(addr) {
 	if (addr < 0 || addr > 65536) console.log("Sid6510.getmem: out of range addr: " + addr + " (caller: " + arguments.caller + ")");
-	if (addr == 0xdd0d) {
-		this.mem[addr] = 0;
-	}
+	//if (addr == 0xdd0d) {
+	//	this.mem[addr] = 0;
+	//}
 	return this.mem[addr];
 };
 
 Sid6510.prototype.setmem = function(addr, value) {
 	if (addr < 0 || addr > 65535) console.log("Sid6510.getmem: out of range addr: " + addr + " (caller: " + arguments.caller + ")");
 	if (value < 0 || value > 255 ) console.log("Sid6510.getmem: out of range value: " + value + " (caller: " + arguments.caller + ")");
-
-	this.mem[addr] = value;
+	//if (this.sid == null) return;
 
 	if ((addr & 0xfc00) == 0xd400 && this.sid != null) {
 		this.sid.poke(addr & 0x1f, value);
-		// disabled for now
-		if ((addr > 0xd418) && (addr < 0xd500)) {
+		if (addr > 0xd418) {
 			console.log("attempted digi poke:", addr, value);
-		//	this.sid.pokeDigi(addr, value);
+			this.sid.pokeDigi(addr, value);
 		}
+	} else {
+		this.mem[addr] = value;
 	}
 
 };
@@ -114,7 +114,7 @@ Sid6510.prototype.getaddr = function(mode) {
 			this.cycles += 5;
 			ad = this.getmem(this.pcinc());
 			ad2 = this.getmem(ad);
-			ad2 |= this.getmem((ad + 1) &0xff) << 8;
+			ad2 |= this.getmem((ad + 1) & 0xff) << 8;
 			ad = ad2 + this.y;
 			ad &= 0xffff;
 			if ((ad2 & 0xff00) != (ad & 0xff00)) this.cycles++;
@@ -282,8 +282,8 @@ Sid6510.prototype.cpuReset = function() {
 	this.pc |= 256 * this.getmem(0xfffd);
 }
 
-Sid6510.prototype.cpuResetTo = function(npc) {
-	this.a	= 0;
+Sid6510.prototype.cpuResetTo = function(npc, na) {
+	this.a	= na || 0;
 	this.x	= 0;
 	this.y	= 0;
 	this.p	= 0;
@@ -355,13 +355,14 @@ Sid6510.prototype.cpuParse = function() {
 			this.setflags(Sid6510.flag.V, this.bval & 0x40);
 			break;
 		case Sid6510.inst.brk:
-			this.push(this.pc & 0xff);
-			this.push(this.pc >> 8);
-			this.push(this.p);
-			this.setflags(Sid6510.flag.B, 1);
+			pc=0;	// just quit per rockbox
+			//this.push(this.pc & 0xff);
+			//this.push(this.pc >> 8);
+			//this.push(this.p);
+			//this.setflags(Sid6510.flag.B, 1);
 			// FIXME: should Z be set as well?
-			this.pc = this.getmem(0xfffe);
-			this.cycles += 7;
+			//this.pc = this.getmem(0xfffe);
+			//this.cycles += 7;
 			break;
 		case Sid6510.inst.clc:
 			this.cycles += 2;
@@ -395,7 +396,7 @@ Sid6510.prototype.cpuParse = function() {
 			if(this.wval < 0) this.wval += 256;
 			this.setflags(Sid6510.flag.Z, !this.wval);
 			this.setflags(Sid6510.flag.N, this.wval & 0x80);
-			this.setflags(Sid6510.flag.C, this.a >= this.bval);
+			this.setflags(Sid6510.flag.C, this.x >= this.bval);
 			break;
 		case Sid6510.inst.cpy:
 			this.bval = this.getaddr(addr);
@@ -404,7 +405,7 @@ Sid6510.prototype.cpuParse = function() {
 			if(this.wval < 0) this.wval += 256;
 			this.setflags(Sid6510.flag.Z, !this.wval);
 			this.setflags(Sid6510.flag.N, this.wval & 0x80);
-			this.setflags(Sid6510.flag.C, this.a >= this.bval);
+			this.setflags(Sid6510.flag.C, this.y >= this.bval);
 			break;
 		case Sid6510.inst.dec:
 			this.bval = this.getaddr(addr);
@@ -476,8 +477,8 @@ Sid6510.prototype.cpuParse = function() {
 			break;
 		case Sid6510.inst.jsr:
 			this.cycles += 6;
-			this.push((this.pc + 2) & 0xff);
-			this.push(((this.pc + 2) & 0xffff) >> 8);
+			this.push(((this.pc + 1) & 0xffff) >> 8);
+			this.push((this.pc + 1) & 0xff);
 			this.wval = this.getmem(this.pcinc());
 			this.wval |= 256 * this.getmem(this.pcinc());
 			this.pc = this.wval;
@@ -555,15 +556,11 @@ Sid6510.prototype.cpuParse = function() {
 			this.setflags(Sid6510.flag.Z, !this.bval);
 			break;
 		case Sid6510.inst.rti:
-			this.p = this.pop();
-			this.y = this.pop();
-			this.x = this.pop();
-			this.a = this.pop();
-			// falls through (or should!)
+			// treat like RTS
 		case Sid6510.inst.rts:
-			this.wval = 256 * this.pop();
-			this.wval |= this.pop();
-			this.pc = this.wval;
+			this.wval = this.pop();
+			this.wval |= 256 * this.pop();
+			this.pc = this.wval + 1;
 			this.cycles += 6;
 			break;
 		case Sid6510.inst.sbc:
@@ -649,7 +646,7 @@ Sid6510.prototype.cpuJSR = function(npc, na) {
 	this.push(0);
 	this.push(0);
 
-	while (this.pc) {
+	while (this.pc > 1) {
 		ccl += this.cpuParse();
 	}
 	return ccl;
