@@ -134,33 +134,36 @@ EnvelopeGenerator.prototype.clock_common = function() {
 				this.envelope_counter &= 0xff;
 				break;
 		}
-		switch (this.envelope_counter) {
-			case 0xff:
-				this.exponential_counter_period = 1;
-				break;
-			case 0x5d:
-				this.exponential_counter_period = 2;
-				break;
-			case 0x36:
-				this.exponential_counter_period = 4;
-				break;
-			case 0x1a:
-				this.exponential_counter_period = 8;
-				break;
-			case 0x0e:
-				this.exponential_counter_period = 16;
-				break;
-			case 0x06:
-				this.exponential_counter_period = 30;
-				break;
-			case 0x00:
-				this.exponential_counter_period = 1;
-				this.hold_zero = true;
-				break;
-		}
+		this.set_exponential_counter();
 	}
 };
 
+EnvelopeGenerator.prototype.set_exponential_counter = function() {
+	switch (this.envelope_counter) {
+		case 0xff:
+			this.exponential_counter_period = 1;
+			break;
+		case 0x5d:
+			this.exponential_counter_period = 2;
+			break;
+		case 0x36:
+			this.exponential_counter_period = 4;
+			break;
+		case 0x1a:
+			this.exponential_counter_period = 8;
+			break;
+		case 0x0e:
+			this.exponential_counter_period = 16;
+			break;
+		case 0x06:
+			this.exponential_counter_period = 30;
+			break;
+		case 0x00:
+			this.exponential_counter_period = 1;
+			this.hold_zero = true;
+			break;
+	}
+};
 
 // Waveform object
 function WaveformGenerator() {
@@ -649,7 +652,8 @@ PointPlotter.interpolate_brute_force = function(x1, y1, x2, y2, k1, k2, plot, re
 	var cc = PointPlotter.cubic_coefficients(x1, y1, x2, y2, k1, k2);
 	for (var x = x1; x <= x2; x += res) {
 		var y = ((cc.a * x + cc.b) * x + cc.c) * x + cc.d;
-		plot[x] = (y < 0) ? 0 : y;
+		//plot[x] = (y < 0) ? 0 : y;
+		plot[Math.floor(x)] = ((y < 0) ? 0 : y) + 0.5;
 	}
 };
 
@@ -661,7 +665,8 @@ PointPlotter.interpolate_forward_difference = function(x1, y1, x2, y2, k1, k2, p
 	var d2y = (6 * cc.a * (x1 + res) + 2 * cc.b) * res * res;
 	var d3y = 6 * cc.a * res * res * res;
 	for (var x = x1; x <= x2; x += res) {
-		plot[x] = (y < 0) ? 0 : y;
+		//plot[x] = (y < 0) ? 0 : y;
+		plot[Math.floor(x)] = ((y < 0) ? 0 : y) + 0.5;
 		y += dy;
 		dy += d2y;
 		d2y += d3y;
@@ -1062,7 +1067,7 @@ function SID (sampleRate, clkRate, method) {
 }
 //FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter we don't.
 
-SID.chip_model = Object.freeze({ MOS6581: {}, MOS8580: {} });
+SID.chip_model = Object.freeze({ MOS6581: 0, MOS8580: 1 });
 SID.const = Object.freeze({
 	FIR_N: 125,
 	FIR_RES_INTERPOLATE: 285,
