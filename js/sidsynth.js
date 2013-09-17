@@ -2,16 +2,16 @@
 // start pFloat
 function pFloat () {};
 pFloat.convertFromInt = function(i) {
-	return (i<<16);
+	return (i<<16) & 0xffffffff;
 };
 pFloat.convertFromFloat = function(f) {
-	return Math.floor(parseFloat(f) * 65536);
+	return Math.floor(parseFloat(f) * 65536) & 0xffffffff;
 };
 pFloat.convertToInt = function(i) {
-	return (i>>16);
+	return (i>>16) & 0xffffffff;
 };
 pFloat.multiply = function(a, b) {
-	return ((a>>8)*(b>>8));
+	return ((a>>8)*(b>>8)) & 0xffffffff;
 };
 // end pFloat;
 
@@ -35,7 +35,7 @@ function SidSynthFilter(sidinstance) {
 
 SidSynthFilter.prototype.precalc = function() {
 	//this.freq  = (4 * this.sid.ffreqhi + (this.sid.ffreqlo & 0x7)) * this.filt_mul;
-	this.freq  = (16 * this.sid.ffreqhi + (this.sid.ffreqlo & 0x7)) * this.filt_mul;
+	this.freq  = (16 * this.sid.ffreqhi + (this.sid.ffreqlo & 0x7)) * this.sid.filt_mul;
 
 	if ( this.freq > pFloat.convertFromInt(1) ) {
 		this.freq = pFloat.convertFromInt(1);
@@ -173,20 +173,23 @@ SidSynthOsc.prototype.sampleUpdate = function() {
 // Main SidSynth Object
 function SidSynth(mix_frequency, memory) {
 
-	memory = memory || null
+	this.mem = memory || null
+
 	this.mix_freq = mix_frequency;	
 	this.freq_mul = Math.floor(15872000 / this.mix_freq);
 	this.filt_mul = Math.floor(pFloat.convertFromFloat(21.5332031) / this.mix_freq);
 
 	var attackTimes = new Array(
-	  0.0022528606, 0.0080099577, 0.0157696042, 0.0237795619, 0.0372963655,
-	  0.0550684591,0.0668330845, 0.0783473987, 0.0981219818, 0.244554021,
-	  0.489108042, 0.782472742, 0.977715461, 2.93364701, 4.88907793, 7.82272493
+		0.0022528606, 0.0080099577, 0.0157696042, 0.0237795619,
+		0.0372963655, 0.0550684591, 0.0668330845, 0.0783473987,
+		0.0981219818, 0.244554021,  0.489108042,  0.782472742,
+		0.977715461,  2.93364701,   4.88907793,   7.82272493
 	);
 	var decayReleaseTimes = new Array(
-	  0.00891777693, 0.024594051, 0.0484185907, 0.0730116639, 0.114512475,
-	  0.169078356, 0.205199432, 0.240551975, 0.301266125, 0.750858245,
-	  1.50171551, 2.40243682, 3.00189298, 9.00721405, 15.010998, 24.0182111
+		0.00891777693, 0.024594051, 0.0484185907, 0.0730116639,
+		0.114512475,   0.169078356, 0.205199432,  0.240551975,
+		0.301266125,   0.750858245, 1.50171551,   2.40243682,
+		3.00189298,    9.00721405,  15.010998,    24.0182111
 	);
 
 	this.attacks = new Array(16);
@@ -390,7 +393,7 @@ SidSynth.prototype.poke = function(reg, val) {
 		case 4:
 			this.v[voice].wave = val;
 			if ((val & 0x01) == 0) this.osc[voice].envphase = 3;
-			else if (this.osc[voice].envphase==3) this.osc[voice].envphase = 0;
+			else if (this.osc[voice].envphase == 3) this.osc[voice].envphase = 0;
 			break;
 		case 5:
 			this.v[voice].ad = val;

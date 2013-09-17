@@ -1547,7 +1547,6 @@ SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_offs
 
 
 SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave, buf_offset) {
-	var j;
 	var s = 0;
 	for (;;) {
 		var next_sample_offset = this.sample_offset + this.cycles_per_sample;
@@ -1574,7 +1573,7 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 		var sample_start = this.sample_index - this.fir_N + SID.const.RINGSIZE;
 
 		var v1 = 0;
-		for (j = 0; j < this.fir_N; j++) {
+		for (var j = 0; j < this.fir_N; j++) {
 			v1 += this.sample[sample_start + j] * this.fir[fir_start + j];
 		}
 
@@ -1585,7 +1584,7 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 		fir_start = fir_offset * this.fir_N;
 	
 		var v2 = 0;
-		for (j = 0; j < this.fir_N; j++) {
+		for (var j = 0; j < this.fir_N; j++) {
 			v2 += this.sample[sample_start + j] * this.fir[fir_start + j];
 		}
 
