@@ -127,6 +127,7 @@ EnvelopeGenerator.prototype.clock_common = function() {
 			case EnvelopeGenerator.State.DECAY_SUSTAIN:
 				if (this.envelope_counter != EnvelopeGenerator.sustain_level[this.sustain]) {
 					--this.envelope_counter;
+					this.envelope_counter &= 0xff;
 				}
 				break;
 			case EnvelopeGenerator.State.RELEASE:

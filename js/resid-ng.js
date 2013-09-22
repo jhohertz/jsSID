@@ -137,6 +137,7 @@ EnvelopeGenerator.prototype.clock_one = function() {
 
 	if (this.envelope_pipeline) {
 		--this.envelope_counter;
+		this.envelope_counter &= 0xff;
 		this.envelope_pipeline = 0;
 		this.set_exponential_counter();
 	}
@@ -172,6 +173,7 @@ EnvelopeGenerator.prototype.clock_one = function() {
 					return;
 				}
 				--this.envelope_counter;
+				this.envelope_counter &= 0xff;
 				break;
 			case EnvelopeGenerator.State.RELEASE:
 				if (this.exponential_counter_period != 1) {
@@ -223,6 +225,7 @@ EnvelopeGenerator.prototype.clock_delta = function(delta_t) {
 						return;
 					}
 					--this.envelope_counter;
+					this.envelope_counter &= 0xff;
 					break;
 				case EnvelopeGenerator.State.RELEASE:
 					--this.envelope_counter;
@@ -311,12 +314,12 @@ WaveformGenerator.prototype.writeFREQ_HI = function(freq_hi) {
 
 WaveformGenerator.prototype.writePW_LO = function(pw_lo) {
 	this.pw = (this.pw & 0xf00) | (pw_lo & 0x0ff);
-	this.pulse_output = (accumulator >> 12) >= this.pw ? 0xfff : 0x000;
+	this.pulse_output = (this.accumulator >> 12) >= this.pw ? 0xfff : 0x000;
 };
 
 WaveformGenerator.prototype.writePW_HI = function(pw_hi) {
 	this.pw = ((pw_hi << 8) & 0xf00) | (this.pw & 0x0ff);
-	this.pulse_output = (accumulator >> 12) >= this.pw ? 0xfff : 0x000;
+	this.pulse_output = (this.accumulator >> 12) >= this.pw ? 0xfff : 0x000;
 };
 
 WaveformGenerator.prototype.writeCONTROL_REG = function(control) {
@@ -327,7 +330,6 @@ WaveformGenerator.prototype.writeCONTROL_REG = function(control) {
 	this.ring_mod = control & 0x04;
 	this.sync = control & 0x02;
 	this.wave = WaveformGenerator.model_wave[this.sid_model][this.waveform & 0x7];
-	// FIXME: bit flip mask may be needed
 	this.ring_msb_mask = ((~control >> 5) & (control >> 2) & 0x1) << 23;
 	this.no_noise = this.waveform & 0x8 ? 0x000 : 0xfff;
 	this.no_noise_or_noise_output = this.no_noise | this.noise_output;
@@ -339,7 +341,6 @@ WaveformGenerator.prototype.writeCONTROL_REG = function(control) {
 		this.shift_register_reset = 0x8000;
 		this.pulse_output = 0xfff;
 	} else if (test_prev && !this.test) {
-		// FIXME: bit flip mask may be needed
 		var bit0 = (~this.shift_register >> 17) & 0x1;
 		this.shift_register = ((this.shift_register << 1) | bit0) & 0x7fffff;
 		this.set_noise_output();
@@ -359,20 +360,17 @@ WaveformGenerator.prototype.readOSC = function() {
 
 WaveformGenerator.prototype.clock_one = function() {
 	if (this.test) {
-		// FIXME: possible side effects on 2nd term
 		if (this.shift_register_reset && (!--this.shift_register_reset)) {
 			this.reset_shift_register();
 		}
 		this.pulse_output = 0xfff;
 	} else {
 		var accumulator_next = (this.accumulator + this.freq) & 0xffffff;
-		// FIXME: bit flip mask warning
 		var accumulator_bits_set = ~this.accumulator & accumulator_next;
 		this.accumulator = accumulator_next;
 		this.msb_rising = (accumulator_bits_set & 0x800000) ? true : false;
 		if (accumulator_bits_set & 0x080000) {
 			this.shift_pipeline = 2;
-		// FIXME: possible side effects on 2nd term
 		} else if (this.shift_pipeline && (!--this.shift_pipeline)) {
 			this.clock_shift_register();
 		}
@@ -392,7 +390,6 @@ WaveformGenerator.prototype.clock_delta = function(delta_t) {
 	} else {
 		var delta_accumulator = delta_t * this.freq;
 		var accumulator_next = (this.accumulator + delta_accumulator) & 0xffffff;
-		// FIXME: bit flip mask warning
 		var accumulator_bits_set = ~this.accumulator & accumulator_next;
 		this.accumulator = accumulator_next;
 		this.msb_rising = (accumulator_bits_set & 0x800000) ? true : false;
@@ -432,6 +429,7 @@ WaveformGenerator.prototype.clock_shift_register = function() {
 
 WaveformGenerator.prototype.write_shift_register = function() {
 	// FIXME: bit flip mask warning
+	// FIXME: first line of this is basically static?
 	this.shift_register &=
 		~((1<<20)|(1<<18)|(1<<14)|(1<<11)|(1<<9)|(1<<5)|(1<<2)|(1<<0)) |
 		((this.waveform_output & 0x800) << 9) |
@@ -469,12 +467,10 @@ WaveformGenerator.prototype.set_waveform_output_one = function() {
 	if (this.waveform) {
 		var ix = (this.accumulator ^ (this.sync_source.accumulator & this.ring_msb_mask)) >> 12;
 		this.waveform_output = this.wave[ix] & (this.no_pulse | this.pulse_output) & this.no_noise_or_noise_output;
-		// FIXME: if for all combined waveforms, does this not miss those without noise?
 		if (this.waveform > 0x8) {
 			this.write_shift_register();
 		}
 	} else {
-		// FIXME: second term is possible using side effects?
 		if (this.floating_output_ttl && (!--this.floating_output_ttl)) {
 			this.waveform_output = 0;
 		}
@@ -561,7 +557,7 @@ WaveformGenerator.model_wave = function() {
 		}
 	}
 	// FIXME: do we need to use the member var here really?
-	this.accumulator = 0;
+	var accumulator = 0;
 	for (i = 0; i < (1 << 12); i++) {
 		var msb = (accumulator & 0x800000) ? 1 : 0;
 		ret[0][0][i] = ret[1][0][i] = 0xfff;
@@ -631,6 +627,7 @@ Voice.prototype.output = function() {
 ExternalFilter = function() {
 	this.reset();
 	this.enable_filter(true);
+	// A lot of work to get 13 for both.... 
 	this.w0lp_1_s7 = Math.floor(100000 * 1.0e-6 * (1 << 7) + 0.5);
 	this.w0hp_1_s17 = Math.floor(100 * 1.0e-6 * (1 << 17) + 0.5);
 
@@ -863,9 +860,12 @@ FilterModel = function(fi) {
 	var vmax = kVddt < opamp_max ? opamp_max : kVddt;
 	var denorm = vmax - vmin;
 	var norm = 1.0 / denorm;
-	var N16 = norm * ((1 << 16) - 1);
-	var N30 = norm * ((1 << 30) - 1);
-	var N31 = norm * ((1 << 31) - 1);
+	//var N16 = norm * ((1 << 16) - 1);
+	//var N30 = norm * ((1 << 30) - 1);
+	//var N31 = norm * ((1 << 31) - 1);
+	var N16 = norm * 0x0000FFFF;
+	var N30 = norm * 0x3FFFFFFF;
+	var N31 = norm * 0x7FFFFFFF;
 
 	this.vo_N16 = Math.floor(N16);  // FIXME: Remove?
 	var N14 = norm * (1 << 14);
@@ -1012,9 +1012,7 @@ FilterModel.prototype.solve_gain = function(opamp, n, vi, x) {
 
 	if (b_vi < 0) b_vi = 0;
 
-	// FIXME: cast to unsigned as follows not reflected here, may or may not matter:
-	//	var c = n * Math.floor(unsigned(b_vi)*unsigned(b_vi) >> 12);
-	var c = n * Math.floor(b_vi * b_vi >> 12);
+	var c = n * Math.floor((b_vi >>> 0) * b_vi >>> 12);
 
 	for (;;) {
 		var xk = x;
@@ -1034,9 +1032,7 @@ FilterModel.prototype.solve_gain = function(opamp, n, vi, x) {
 		var b_vo = b - vo;
 		if (b_vo < 0) b_vo = 0;
 
-		// FIXME: waring unsigned casts, not handled:
-		//	var f = a * int(unsigned(b_vx)*unsigned(b_vx) >> 12) - c - int(unsigned(b_vo)*unsigned(b_vo) >> 5);
-		var f = a * Math.floor(b_vx * b_vx >> 12) - c - Math.floor(b_vo * b_vo >> 5);
+		var f = a * Math.floor((b_vx >>> 0) * b_vx >>> 12) - c - Math.floor((b_vo >>> 0) * b_vo >>> 5);
 		var df = (b_vo * (dvx + (1 << 11)) - a * (b_vx * dvx >> 7)) >> 15;
 
 		x -= Math.floor(f / df);
@@ -1139,7 +1135,7 @@ Filter.prototype.set_w0 = function() {
 	var Vw = this.Vw_bias + f.f0_dac[this.fc];
 	// FIXME: unaccounted unsign cast
 	//	this.Vddt_Vw_2 = unsigned(f.kVddt - Vw)*unsigned(f.kVddt - Vw) >> 1;
-	this.Vddt_Vw_2 = (f.kVddt - Vw) * (f.kVddt - Vw) >> 1;
+	this.Vddt_Vw_2 = ((f.kVddt - Vw) >>> 0) * (f.kVddt - Vw) >>> 1;
 	this.w0 = 82355 * (this.fc + 1) >> 11;
 };
 
@@ -1336,7 +1332,7 @@ Filter.prototype.clock_delta = function(voice1, voice2, voice3, delta_t) {
 
 	// this should be 3, but turning up to lighten load for now
 	//var delta_t_flt = 3;
-	var delta_t_flt = 8;
+	var delta_t_flt = 3;
 
 	if(this.sid_model === 0) {
 		while (delta_t) {
@@ -2233,7 +2229,7 @@ ReSID.prototype.set_sampling_parameters = function(clock_freq, method, sample_fr
 	//for (var j = 0; j < ReSID.const.RINGSIZE * 2; j++) {
 	//	this.sample[j] = 0;
 	//}
-	//this.sample_index = 0;
+	this.sample_index = 0;
 
 	var A = -20 * (Math.log(1.0 / (1 << 16)) / Math.LN10);		// FIXME: constant
 	var dw = (1 - 2 * pass_freq / sample_freq) * Math.PI * 2;
