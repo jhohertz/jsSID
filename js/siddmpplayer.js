@@ -117,14 +117,14 @@ SidDmpPlayer.prototype.generateIntoBuffer = function (samples, data, dataOffset)
 	dataOffset = dataOffset || 0;
 	var dataOffsetStart = dataOffset;
 
-	//console.log("Generating " + samples + " samples (" + samplesToNextFrame + " to next frame)");
+	//console.log("Generating " + samples + " samples");
 	var samplesRemaining = samples / 2;
 		
 	while (true) {
 		if (this.samplesToNextFrame != null && this.samplesToNextFrame <= samplesRemaining) {
 			/* generate samplesToNextFrame samples, process frame and repeat */
 			var samplesToGenerate = Math.ceil(this.samplesToNextFrame);
-			//console.log("next frame: " + samplesToNextFrame + ", remaining: " + samplesRemaining + ", offset: " + dataOffset + ", generate: " + samplesToGenerate);
+			//console.log("next frame: " + this.samplesToNextFrame + ", remaining: " + samplesRemaining + ", offset: " + dataOffset + ", generate: " + samplesToGenerate);
 			if (samplesToGenerate > 0) {
 				var generated = this.synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
 				dataOffset += generated * 2;

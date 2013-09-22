@@ -1,6 +1,6 @@
 
 // start pFloat
-function pFloat () {};
+function pFloat () {}
 pFloat.convertFromInt = function(i) {
 	return (i<<16) & 0xffffffff;
 };
@@ -31,7 +31,7 @@ function SidSynthFilter(sidinstance) {
 	this.h		= 0;		// int
 	this.b		= 0;		// int
 	this.l		= 0;		// int
-};
+}
 
 SidSynthFilter.prototype.precalc = function() {
 	//this.freq  = (4 * this.sid.ffreqhi + (this.sid.ffreqlo & 0x7)) * this.filt_mul;
@@ -74,7 +74,7 @@ function SidSynthOsc(sidinstance, voicenum) {
 	this.plsout	= 0;		// byte
 	this.outv	= 0;		// byte
 
-};
+}
 
 // Pre-calc values common to a sample set
 SidSynthOsc.prototype.precalc = function() {
@@ -173,7 +173,7 @@ SidSynthOsc.prototype.sampleUpdate = function() {
 // Main SidSynth Object
 function SidSynth(mix_frequency, memory) {
 
-	this.mem = memory || null
+	this.mem = memory || null;
 
 	this.mix_freq = mix_frequency;	
 	this.freq_mul = Math.floor(15872000 / this.mix_freq);
@@ -251,7 +251,7 @@ function SidSynth(mix_frequency, memory) {
 	//this.last_sample = 0;
 
 
-};
+}
 
 // generate count samples into buffer at offset
 SidSynth.prototype.generateIntoBuffer = function(count, buffer, offset) {
@@ -310,7 +310,7 @@ SidSynth.prototype.generateIntoBuffer = function(count, buffer, offset) {
 
 SidSynth.prototype.generateDigi = function(sIn) {
 
-	if ((!this.sample_active) || (this.mem == null)) return(sIn);
+	if ((!this.sample_active) || (this.mem === null)) return(sIn);
 
 	if ((this.sample_position < this.sample_end) && (this.sample_position >= this.sample_start)) {
 		//Interpolation routine
@@ -327,7 +327,7 @@ SidSynth.prototype.generateDigi = function(sIn) {
 
 			//this.last_sample = this.sample;
 
-			if (this.sample_order == 0) {
+			if (this.sample_order === 0) {
 				this.sample_nibble++;
 				if (this.sample_nibble == 2) {
 					this.sample_nibble = 0;
@@ -392,7 +392,7 @@ SidSynth.prototype.poke = function(reg, val) {
 			break;
 		case 4:
 			this.v[voice].wave = val;
-			if ((val & 0x01) == 0) this.osc[voice].envphase = 3;
+			if ((val & 0x01) === 0) this.osc[voice].envphase = 3;
 			else if (this.osc[voice].envphase == 3) this.osc[voice].envphase = 0;
 			break;
 		case 5:

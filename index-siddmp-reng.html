@@ -30,8 +30,8 @@
                 </div>
                 <script src="js/stream.js"></script>
                 <script src="js/jsxcompressor.js"></script>
-                <script src="js/fastsid.js"></script>
-                <script src="js/resid.js"></script>
+                <script src="js/sidsynth.js"></script>
+                <script src="js/resid-ng.js"></script>
                 <script src="js/sid6510.js"></script>
                 <script src="js/siddmpplayer.js"></script>
                 <script src="js/sink.js"></script>
@@ -39,7 +39,7 @@
                 <script>
 
                         function play(file) {
-                        	sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.low });
+                        	sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.good });
                                 $("#status").text("Loading: " + file);
                                 Stream.loadRemoteFile(file, function(data) {
                                         sidDmpPlayer.loadFileFromData(data)

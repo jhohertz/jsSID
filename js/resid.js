@@ -204,19 +204,19 @@ WaveformGenerator.prototype.set_sync_source = function(source) {
 };
 
 WaveformGenerator.prototype.writeFREQ_LO = function(freq_lo) {
-	this.freq = this.freq & 0xff00 | freq_lo & 0x00ff;
+	this.freq = (this.freq & 0xff00) | (freq_lo & 0x00ff);
 };
 
 WaveformGenerator.prototype.writeFREQ_HI = function(freq_hi) {
-	this.freq = (freq_hi << 8) & 0xff00 | this.freq & 0x00ff;
+	this.freq = ((freq_hi << 8) & 0xff00) | (this.freq & 0x00ff);
 };
 
 WaveformGenerator.prototype.writePW_LO = function(pw_lo) {
-	this.pw = this.pw & 0xf00 | pw_lo & 0x0ff;
+	this.pw = (this.pw & 0xf00) | (pw_lo & 0x0ff);
 };
 
 WaveformGenerator.prototype.writePW_HI = function(pw_hi) {
-	this.pw = (pw_hi << 8) & 0xf00 | this.pw & 0x0ff;
+	this.pw = ((pw_hi << 8) & 0xf00) | (this.pw & 0x0ff);
 };
 
 WaveformGenerator.prototype.writeCONTROL_REG = function(control) {
@@ -234,7 +234,7 @@ WaveformGenerator.prototype.writeCONTROL_REG = function(control) {
 };
 
 WaveformGenerator.prototype.readOSC = function() {
-	return this.output >> 4;
+	return this.output() >> 4;
 };
 
 // definitions of EnvelopeGenerator methods below here are called for every sample
@@ -764,12 +764,12 @@ Filter.prototype.reset = function() {
 };
 
 Filter.prototype.writeFC_LO = function(fc_lo) {
-	this.fc = this.fc & 0x7f8 | fc_lo & 0x007;
+	this.fc = (this.fc & 0x7f8) | (fc_lo & 0x007);
 	this.set_w0();
 };
 
 Filter.prototype.writeFC_HI = function(fc_hi) {
-	this.fc = (fc_hi << 3) & 0x7f8 | this.fc & 0x007;
+	this.fc = ((fc_hi << 3) & 0x7f8) | (this.fc & 0x007);
 	this.set_w0();
 };
 
@@ -1103,7 +1103,8 @@ SID.factory = function(f_opts) {
 	var f_sampleRate = f_opts.mixrate || 44100;
 	var f_newsid;
 	if(f_quality == SID.quality.low) {
-		f_newsid = new SidSynth(f_sampleRate);
+		//f_newsid = new SidSynth(f_sampleRate);
+		f_newsid = new FastSID({ sampleRate: f_sampleRate, clock: f_clock });
 	} else {
 		f_newsid = new SID(f_sampleRate, f_clock, f_quality[1]);
 	}
@@ -1177,8 +1178,8 @@ SID.prototype.pokeDigi = function(offset, value) {
 };
 
 SID.prototype.write = function(offset, value) {
-	bus_value = value;
-	bus_value_ttl = 0x2000;
+	this.bus_value = value;
+	this.bus_value_ttl = 0x2000;
 
 	switch (offset) {
 		case 0x00:
@@ -1340,7 +1341,7 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 	this.fir_N = Math.floor(N * f_cycles_per_sample) + 1;
 	this.fir_N |= 1;
 
-	var res = (method == (SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE ? SID.const.FIR_RES_INTERPOLATE : SID.const.FIR_RES_FAST));
+	var res = (method == SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE) ? SID.const.FIR_RES_INTERPOLATE : SID.const.FIR_RES_FAST;
 	var n = Math.ceil(Math.log(res / f_cycles_per_sample) / Math.log(2));
 	this.fir_RES = 1 << n;
 
@@ -1381,9 +1382,9 @@ SID.prototype.adjust_sampling_frequency = function(sample_freq) {
 
 SID.prototype.clock_one = function() {
 	var i;
-	if (--bus_value_ttl <= 0) {
-		bus_value = 0;
-		bus_value_ttl = 0;
+	if (--this.bus_value_ttl <= 0) {
+		this.bus_value = 0;
+		this.bus_value_ttl = 0;
 	}
 	for (i = 0; i < 3; i++) {
 		this.voice[i].envelope.clock_one();
