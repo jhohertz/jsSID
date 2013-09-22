@@ -14,20 +14,17 @@ function Stream(str) {
 	
 	/* read a big-endian 32-bit integer */
 	function readInt32() {
-		var result = (
-			(str.charCodeAt(position) << 24)
-			+ (str.charCodeAt(position + 1) << 16)
-			+ (str.charCodeAt(position + 2) << 8)
-			+ str.charCodeAt(position + 3));
+		var result = ( (str.charCodeAt(position) << 24) +
+			(str.charCodeAt(position + 1) << 16) +
+			(str.charCodeAt(position + 2) << 8) +
+			str.charCodeAt(position + 3));
 		position += 4;
 		return result;
 	}
 
 	/* read a big-endian 16-bit integer */
 	function readInt16() {
-		var result = (
-			(str.charCodeAt(position) << 8)
-			+ str.charCodeAt(position + 1));
+		var result = ( (str.charCodeAt(position) << 8) + str.charCodeAt(position + 1));
 		position += 2;
 		return result;
 	}
@@ -70,7 +67,7 @@ function Stream(str) {
 		'readInt16': readInt16,
 		'readInt8': readInt8,
 		'readVarInt': readVarInt
-	}
+	};
 }
 
 Stream.loadRemoteFile = function (path, callback) {
@@ -90,9 +87,9 @@ Stream.loadRemoteFile = function (path, callback) {
 			}
 			callback(ff.join(""));
 		}
-	}
+	};
 	fetch.send();
-}
+};
 
 
 Stream.Base64DecodeEnumerator = function(input)
@@ -100,7 +97,7 @@ Stream.Base64DecodeEnumerator = function(input)
     this._input = input;
     this._index = -1;
     this._buffer = [];
-}
+};
 
 Stream.Base64DecodeEnumerator.prototype =
 {
@@ -156,6 +153,6 @@ Stream.Base64Decode = function(input) {
         }
 
         return output.join("");
-}
+};
 
 

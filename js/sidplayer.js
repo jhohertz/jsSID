@@ -4,7 +4,7 @@ function SidFile(data) {
 	if(data) {
 		this.loadFileFromData(data);
 	}
-};
+}
 
 SidFile.prototype.loadFileFromData = function(data) {
         var stream = Stream(data);
@@ -64,13 +64,13 @@ function SidPlayer(opts) {
                 mixrate: this.sink.sampleRate
         });
 
-};
+}
 
 // to use sink vs audiomanager
 SidPlayer.prototype.sinkCall = function(buffer, channels) {
         if(this.ready) {
                 var written = this.generateIntoBuffer(buffer.length, buffer, 0);
-                if (written == 0) {
+                if (written === 0) {
                                 //play_mod(random_mod_href());
                                 this.ready = false;
                                 this.finished = true;
@@ -97,11 +97,11 @@ SidPlayer.prototype.loadFileFromData = function(data) {
 	this.sidfile = new SidFile(data);
 
 	this.sidspeed = this.sidfile.speed ? 100 : 50;		// 0=50hz, 1=100hz
-	this.samplesPerFrame = this.synth.mix_freq / this.sidspeed 
+	this.samplesPerFrame = this.synth.mix_freq / this.sidspeed;
 	this.cpu = new Sid6510(this.sidfile.mem, this.synth);
 
 	// now everything is setup, initialize the sid if needed
-	if (this.sidfile.play_addr == 0) {
+	if (this.sidfile.play_addr === 0) {
 		this.cpu.cpuJSR(this.sidfile.init_addr, 0);
 		this.sidfile.play_addr = (this.cpu.mem[0x0315] << 8) + this.cpu.mem[0x0314];
 		console.log("new play_addr: ", this.sidfile.play_addr);
@@ -124,7 +124,7 @@ SidPlayer.prototype.getNextFrame = function() {
 		// check if CIA timing is used, and adjust
 
                 var nRefreshCIA = Math.floor(20000 * (this.cpu.getmem(0xdc04) | (this.cpu.getmem(0xdc05) << 8)) / 0x4c00);
-                if ((nRefreshCIA==0) || (this.sidspeed == 0)) nRefreshCIA = 20000;
+                if ((nRefreshCIA === 0) || (this.sidspeed === 0)) nRefreshCIA = 20000;
 		this.samplesPerFrame = Math.floor(this.synth.mix_freq * nRefreshCIA / 1000000);
 
 		this.samplesToNextFrame += this.samplesPerFrame;
@@ -159,13 +159,13 @@ SidPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffset) {
 
 	//console.log("Generating " + samples + " samples (" + samplesToNextFrame + " to next frame)");
 	var samplesRemaining = samples / 2;
-		
+	var generated;	
 	while (true) {
-		if (this.samplesToNextFrame != null && this.samplesToNextFrame <= samplesRemaining) {
+		if (this.samplesToNextFrame !== null && this.samplesToNextFrame <= samplesRemaining) {
 			var samplesToGenerate = Math.ceil(this.samplesToNextFrame);
 			//console.log("next frame: " + samplesToNextFrame + ", remaining: " + samplesRemaining + ", offset: " + dataOffset + ", generate: " + samplesToGenerate);
 			if (samplesToGenerate > 0) {
-				var generated = this.synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
+				generated = this.synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
 				dataOffset += generated * 2;
 				samplesRemaining -= generated;
 				this.samplesToNextFrame -= generated;
@@ -175,7 +175,7 @@ SidPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffset) {
 		} else {
 			/* generate samples to end of buffer */
 			if (samplesRemaining > 0) {
-				var generated = this.synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
+				generated = this.synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
 				dataOffset += generated * 2;
 				samplesRemaining -= generated;
 				this.samplesToNextFrame -= generated;
@@ -185,7 +185,8 @@ SidPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffset) {
 	}
 	//console.log("data: ", data);
 	return dataOffset - dataOffsetStart;
-}
+};
+
 
 	
 //function replay(audio) {

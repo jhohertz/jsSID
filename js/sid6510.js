@@ -34,11 +34,9 @@ Sid6510.prototype.getmem = function(addr) {
 };
 
 Sid6510.prototype.setmem = function(addr, value) {
-	if (addr < 0 || addr > 65535) console.log("Sid6510.getmem: out of range addr: " + addr + " (caller: " + arguments.caller + ")");
-	if (value < 0 || value > 255 ) console.log("Sid6510.getmem: out of range value: " + value + " (caller: " + arguments.caller + ")");
-	//if (this.sid == null) return;
-
-	if ((addr & 0xfc00) == 0xd400 && this.sid != null) {
+	//if (addr < 0 || addr > 65535) console.log("Sid6510.getmem: out of range addr: " + addr + " (caller: " + arguments.caller + ")");
+	//if (value < 0 || value > 255 ) console.log("Sid6510.getmem: out of range value: " + value + " (caller: " + arguments.caller + ")");
+	if ((addr & 0xfc00) == 0xd400 && this.sid !== null) {
 		this.sid.poke(addr & 0x1f, value);
 		if (addr > 0xd418) {
 			console.log("attempted digi poke:", addr, value);
@@ -255,17 +253,16 @@ Sid6510.prototype.pop = function() {
 Sid6510.prototype.branch = function(flag) {
 	var dist = this.getaddr(Sid6510.mode.imm);
 	// FIXME: while this was checked out, it still seems too complicated
+	// make signed
 	if (dist & 0x80) {
-        	// make signed
-		//var olddist = dist;
 		dist = 0 - ((~dist & 0xff) + 1);
-		//console.log("branch: adjusting to signed, old, new, flag: ", olddist, dist, flag);
 	}
 
 	// this here needs to be extracted for general 16-bit rounding needs
 	this.wval= this.pc + dist;
-	if (this.wval < 0) this.wval += 65536			    // FIXME: added boundary checks to wrap around. Not sure this is whats needed
-	this.wval &= 0xffff
+	// FIXME: added boundary checks to wrap around. Not sure this is whats needed
+	if (this.wval < 0) this.wval += 65536;
+	this.wval &= 0xffff;
 	if (flag) {
 		this.cycles += ((this.pc & 0x100) != (this.wval & 0x100)) ? 2 : 1;
 		this.pc = this.wval;
@@ -280,7 +277,7 @@ Sid6510.prototype.cpuReset = function() {
 	this.s	= 255;
 	this.pc	= this.getmem(0xfffc);
 	this.pc |= 256 * this.getmem(0xfffd);
-}
+};
 
 Sid6510.prototype.cpuResetTo = function(npc, na) {
 	this.a	= na || 0;
@@ -289,7 +286,7 @@ Sid6510.prototype.cpuResetTo = function(npc, na) {
 	this.p	= 0;
 	this.s	= 255;
 	this.pc	= npc;
-}
+};
 
 Sid6510.prototype.cpuParse = function() {
 	var c;
@@ -441,7 +438,7 @@ Sid6510.prototype.cpuParse = function() {
 		case Sid6510.inst.inc:
 			this.bval = this.getaddr(addr);
 			this.bval++;
-			this.bval &= 0xff
+			this.bval &= 0xff;
 			this.setaddr(addr, this.bval);
 			this.setflags(Sid6510.flag.Z, !this.bval);
 			this.setflags(Sid6510.flag.N, this.bval & 0x80);
@@ -449,14 +446,14 @@ Sid6510.prototype.cpuParse = function() {
 		case Sid6510.inst.inx:
 			this.cycles += 2;
 			this.x++;
-			this.x &= 0xff
+			this.x &= 0xff;
 			this.setflags(Sid6510.flag.Z, !this.x);
 			this.setflags(Sid6510.flag.N, this.x & 0x80);
 			break;
 		case Sid6510.inst.iny:
 			this.cycles += 2;
 			this.y++;
-			this.y &= 0xff
+			this.y &= 0xff;
 			this.setflags(Sid6510.flag.Z, !this.y);
 			this.setflags(Sid6510.flag.N, this.y & 0x80);
 			break;

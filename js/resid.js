@@ -115,7 +115,7 @@ EnvelopeGenerator.prototype.clock_common = function() {
 		if (this.hold_zero) {
 			return;
 		}
-    		switch (this.state) {
+		switch (this.state) {
 			case EnvelopeGenerator.State.ATTACK:
 				++this.envelope_counter;
 				this.envelope_counter &= 0xff;
@@ -170,7 +170,7 @@ function WaveformGenerator() {
 	this.sync_source = this;
 	this.set_chip_model(SID.chip_model.MOS6581);
 	this.reset();
-};
+}
 
 WaveformGenerator.prototype.set_chip_model = function(model) {
 	if (model == SID.chip_model.MOS6581) {
@@ -312,8 +312,7 @@ WaveformGenerator.prototype.output_P__ = function() {
 };
 
 WaveformGenerator.prototype.outputN___ = function() {
-	return
-		((this.shift_register & 0x400000) >> 11) |
+	return  ((this.shift_register & 0x400000) >> 11) |
 		((this.shift_register & 0x100000) >> 10) |
 		((this.shift_register & 0x010000) >> 7) |
 		((this.shift_register & 0x002000) >> 5) |
@@ -1054,7 +1053,7 @@ function SID (sampleRate, clkRate, method) {
 
 	this.voice = new Array(3);
 	for(var i = 0; i < 3; i++) {
-		this.voice[i] = new Voice;
+		this.voice[i] = new Voice();
 	}
 	this.filter = new Filter();
 	this.extfilt = new ExternalFilter();
@@ -1109,7 +1108,7 @@ SID.factory = function(f_opts) {
 		f_newsid = new SID(f_sampleRate, f_clock, f_quality[1]);
 	}
 	return f_newsid;
-}
+};
 
 SID.prototype.set_chip_model = function(model) {
 	for (var i = 0; i < 3; i++) {
@@ -1368,8 +1367,8 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 		this.sample = new Array(SID.const.RINGSIZE * 2);
 	}
 	// Clear sample buffer.
-	for (var j = 0; j < SID.const.RINGSIZE * 2; j++) {
-		this.sample[j] = 0;
+	for (var k = 0; k < SID.const.RINGSIZE * 2; k++) {
+		this.sample[k] = 0;
 	}
 	this.sample_index = 0;
 	return true;
@@ -1590,8 +1589,8 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 		fir_start = fir_offset * this.fir_N;
 	
 		var v2 = 0;
-		for (var j = 0; j < this.fir_N; j++) {
-			v2 += this.sample[sample_start + j] * this.fir[fir_start + j];
+		for (var k = 0; k < this.fir_N; k++) {
+			v2 += this.sample[sample_start + k] * this.fir[fir_start + k];
 		}
 
 		var v = v1 + (fir_offset_rmd * (v2 - v1) >> SID.const.FIXP_SHIFT);
@@ -1611,7 +1610,7 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 		buf[buf_idx + 1] = final_sample;
 	}
 
-	for (var i = 0; i < delta_t; i++) {
+	for (var m = 0; m < delta_t; m++) {
 		this.clock_one();
 		this.sample[this.sample_index] = this.output();
 		this.sample[this.sample_index + SID.const.RINGSIZE] = this.sample[this.sample_index];
@@ -1668,7 +1667,7 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_of
 		buf[buf_idx + 1] = final_sample;
 	}
 
-	for (var i = 0; i < delta_t; i++) {
+	for (var k = 0; k < delta_t; k++) {
 		this.clock_one();
 		this.sample[this.sample_index] = this.output();
 		this.sample[this.sample_index + SID.const.RINGSIZE] = this.sample[this.sample_index];

@@ -2,7 +2,7 @@
 
 DAC = {};
 DAC.build_dac_table = function(dac, bits, _2R_div_R, term) {
-	var vbit = new Array(bits)
+	var vbit = new Array(bits);
 	for (var set_bit = 0; set_bit < bits; set_bit++) {
 		var bit;
 
@@ -154,7 +154,7 @@ EnvelopeGenerator.prototype.clock_one = function() {
 		if (this.hold_zero) {
 			return;
 		}
-    		switch (this.state) {
+		switch (this.state) {
 			case EnvelopeGenerator.State.ATTACK:
 				++this.envelope_counter;
 				this.envelope_counter &= 0xff;
@@ -209,7 +209,7 @@ EnvelopeGenerator.prototype.clock_delta = function(delta_t) {
 			if (this.hold_zero) {
 				return;
 			}
-    			switch (this.state) {
+			switch (this.state) {
 				case EnvelopeGenerator.State.ATTACK:
 					++this.envelope_counter;
 					this.envelope_counter &= 0xff;
@@ -269,7 +269,7 @@ function WaveformGenerator() {
 	this.sync_source = this;
 	this.sid_model = ReSID.chip_model.MOS6581;
 	this.reset();
-};
+}
 
 WaveformGenerator.prototype.set_chip_model = function(model) {
 	this.sid_model = model;
@@ -549,19 +549,20 @@ WaveformGenerator.model_wave = function() {
 	var data = JXG.decompress(WaveformGenerator.comboTableCompressed);
 	var stream = Stream(data);
 	var combo = new Array(32768);
-	for(var i = 0; i < 32768; i++) {
+	var i, j;
+	for(i = 0; i < 32768; i++) {
 		combo[i] = stream.readInt8();
 	}
 	var ret = new Array(2);
-	for(var i = 0; i < 2; i++) {
+	for(i = 0; i < 2; i++) {
 		ret[i] = new Array(8);
-		for(var j = 0; j < 8; j++) {
+		for(j = 0; j < 8; j++) {
 			ret[i][j] = new Array(1 << 12);
 		}
 	}
 	// FIXME: do we need to use the member var here really?
 	this.accumulator = 0;
-	for (var i = 0; i < (1 << 12); i++) {
+	for (i = 0; i < (1 << 12); i++) {
 		var msb = (accumulator & 0x800000) ? 1 : 0;
 		ret[0][0][i] = ret[1][0][i] = 0xfff;
 		// FIXME: possible size error on this?
@@ -910,12 +911,13 @@ FilterModel = function(fi) {
 		opamp[j] = 0;
 	}
 	this.gain = new Array(16);
+	var x, vi, sg, n;
 	for (var n8 = 0; n8 < 16; n8++) {
 		this.gain[n8] = new Array(1<<16);
-		var n = n8 << 4;
-		var x = this.ak;
-		for (var vi = 0; vi < (1 << 16); vi++) {
-			var sg = this.solve_gain(opamp, n, vi, x);
+		n = n8 << 4;
+		x = this.ak;
+		for (vi = 0; vi < (1 << 16); vi++) {
+			sg = this.solve_gain(opamp, n, vi, x);
 			this.gain[n8][vi] = sg[0];
 			x = sg[1];
 		}
@@ -923,13 +925,14 @@ FilterModel = function(fi) {
 	var offset = 0;
 	var size;
 	this.summer = new Array(Filter.summer_offset[5]);
+	var idiv, n_idiv;
 	for (var k = 0; k < 5; k++) {
-		var idiv = 2 + k;
-		var n_idiv = idiv << 7;
+		idiv = 2 + k;
+		n_idiv = idiv << 7;
 		size = idiv << 16;
-		var x = this.ak;
-		for (var vi = 0; vi < size; vi++) {
-			var sg = this.solve_gain(opamp, n_idiv, vi / idiv, x);
+		x = this.ak;
+		for (vi = 0; vi < size; vi++) {
+			sg = this.solve_gain(opamp, n_idiv, vi / idiv, x);
 			this.summer[offset + vi] = sg[0];
 			x = sg[1];
 		}
@@ -939,14 +942,14 @@ FilterModel = function(fi) {
 	size = 1;
 	this.mixer = new Array(Filter.mixer_offset[8]);
 	for (var l = 0; l < 8; l++) {
-		var idiv = l;
-		var n_idiv = (idiv << 7) * 8 / 6;
-		if (idiv == 0) {
+		idiv = l;
+		n_idiv = (idiv << 7) * 8 / 6;
+		if (idiv === 0) {
 			idiv = 1;
 		}
-		var x = this.ak;
-		for (var vi = 0; vi < size; vi++) {
-			var sg = this.solve_gain(opamp, n_idiv, vi / idiv, x);
+		x = this.ak;
+		for (vi = 0; vi < size; vi++) {
+			sg = this.solve_gain(opamp, n_idiv, vi / idiv, x);
 			this.mixer[offset + vi] = sg[0];
 			x = sg[1];
 		}
@@ -965,22 +968,21 @@ FilterModel = function(fi) {
 	var bits = 11;
 	this.f0_dac = new Array(1<<bits);
 	DAC.build_dac_table(this.f0_dac, bits, fi.dac_2R_div_R, fi.dac_term);
-	for (var n = 0; n < (1 << bits); n++) {
+	for (n = 0; n < (1 << bits); n++) {
 		this.f0_dac[n] = Math.floor(N16 * (fi.dac_zero + this.f0_dac[n] * fi.dac_scale / (1 << bits) - vmin) + 0.5) & 0xffff;
 	}
 
 	// only set for 6581
 	if("WL_vcr" in fi) {
 
-		var N16 = this.vo_N16;
-		var vmin = N16 * fi.opamp_voltage[0][0];
-		var k = fi.k;
-		var kVddt = N16 * (k * (fi.Vdd - fi.Vth));
+		N16 = this.vo_N16;
+		vmin = N16 * fi.opamp_voltage[0][0];
+		kVddt = N16 * (fi.k * (fi.Vdd - fi.Vth));
 
 		this.vcr_kVg = new Array(1<<16);
-		for (var i = 0; i < (1 << 16); i++) {
-			var Vg = kVddt - Math.sqrt(i * (1 << 16));
-			this.vcr_kVg[i] = Math.floor(k*Vg - vmin + 0.5) & 0xffff;
+		for (var p = 0; p < (1 << 16); p++) {
+			var Vg = kVddt - Math.sqrt(p * (1 << 16));
+			this.vcr_kVg[p] = Math.floor(fi.k * Vg - vmin + 0.5) & 0xffff;
 		}
 
 		var kVt = fi.k * fi.Vth;
@@ -1237,7 +1239,7 @@ Filter.prototype.clock_one = function(voice1, voice2, voice3) {
 			break;
 	}
 
-	if (this.sid_model == 0) {
+	if (this.sid_model === 0) {
 		this.solve_integrate_6581_Vlp(1, f);
 		this.solve_integrate_6581_Vbp(1, f);
 		this.Vhp = f.summer[offset + f.gain[this._8_div_Q][this.Vbp] + this.Vlp + Vi];
@@ -1336,7 +1338,7 @@ Filter.prototype.clock_delta = function(voice1, voice2, voice3, delta_t) {
 	//var delta_t_flt = 3;
 	var delta_t_flt = 8;
 
-	if(this.sid_model == 0) {
+	if(this.sid_model === 0) {
 		while (delta_t) {
 			if (delta_t < delta_t_flt) {
 				delta_t_flt = delta_t;
@@ -1888,7 +1890,7 @@ Filter.prototype.output = function() {
 			offset = Filter.mixer_offset[7];
 			break;
 	}
-	if (this.sid_model == 0) {
+	if (this.sid_model === 0) {
 		// FIXME: possible cast issue warning
 		return Math.floor(f.gain[this.vol][f.mixer[offset + Vi]] - (1 << 15));
 	} else {
@@ -1953,7 +1955,7 @@ function ReSID (sampleRate, clkRate, method) {
 
 	this.voice = new Array(3);
 	for(var i = 0; i < 3; i++) {
-		this.voice[i] = new Voice;
+		this.voice[i] = new Voice();
 	}
 	this.filter = new Filter();
 	this.extfilt = new ExternalFilter();
@@ -2429,7 +2431,7 @@ ReSID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
 			delta_t_sample = delta_t;
 		}
 		this.clock_delta(delta_t_sample);
-		if((delta_t -= delta_t_sample) == 0) {
+		if((delta_t -= delta_t_sample) === 0) {
 			this.sample_offset -= delta_t_sample << ReSID.const.FIXP_SHIFT;
 			break;
 		}
@@ -2459,7 +2461,7 @@ ReSID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_of
 				this.sample_now = output();
 			}
 		}
-		if ((delta_t -= delta_t_sample) == 0) {
+		if ((delta_t -= delta_t_sample) === 0) {
 			this.sample_offset -= delta_t_sample << ReSID.const.FIXP_SHIFT;
 			break;
 		}
@@ -2492,7 +2494,7 @@ ReSID.prototype.clock_resample = function(delta_t, buf, n, interleave, buf_offse
 			this.sample_index &= ReSID.const.RINGMASK;
 		}
 
-		if ((delta_t -= delta_t_sample) == 0) {
+		if ((delta_t -= delta_t_sample) === 0) {
 			this.sample_offset -= delta_t_sample << ReSID.const.FIXP_SHIFT;
 			break;
 		}
@@ -2553,7 +2555,7 @@ ReSID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_
 			++this.sample_index;
 			this.sample_index &= ReSID.const.RINGMASK;
 		}
-		if ((delta_t -= delta_t_sample) == 0) {
+		if ((delta_t -= delta_t_sample) === 0) {
 			sample_offset -= delta_t_sample << ReSID.const.FIXP_SHIFT;
 			break;
 		}

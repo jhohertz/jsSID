@@ -22,13 +22,13 @@ function SidDmpPlayer(opts) {
 	this.nextFrameNum = 0;
 	this.samplesToNextFrame = 0;
 
-};
+}
 
 // to use sink vs audiomanager
 SidDmpPlayer.prototype.sinkCall = function(buffer, channels) {
 	if(this.ready) {
 		var written = this.generateIntoBuffer(buffer.length, buffer, 0);
-		if (written == 0) {
+		if (written === 0) {
 				//play_mod(random_mod_href());
 				this.ready = false;
 				this.finished = true;
@@ -54,7 +54,7 @@ SidDmpPlayer.prototype.loadFileFromData = function(data) {
 	this.stop();
 	var stream = Stream(data);
 
-	this.siddmp = new Array;
+	this.siddmp = [];
 	while (!stream.eof()) {
 		var frame = stream.read(25);
 		this.siddmp.push(frame);
@@ -71,15 +71,16 @@ SidDmpPlayer.prototype.loadFileFromData = function(data) {
 // also handle end condition
 SidDmpPlayer.prototype.getNextFrame = function() {
 	var nextFrame = null;
+	var count;
 
 	if (this.nextFrameNum < this.siddmp.length) {
 		// have a frame to give
-		var nextFrame = this.siddmp[this.nextFrameNum];
+		nextFrame = this.siddmp[this.nextFrameNum];
 		this.nextFrameNum++;
 			
 		// poke frame registers
 		var stream = Stream(nextFrame);
-		var count = 0;
+		count = 0;
 		while ((!stream.eof()) && count < 25) {
 			var val = stream.readInt8();
 			this.synth.poke(count, val);
@@ -93,7 +94,7 @@ SidDmpPlayer.prototype.getNextFrame = function() {
 
 		// FIXME: this should be a feature of SidSynth we call
 		// zero out sid registers at end to prevent noise
-		var count = 0;
+		count = 0;
 		while ( count < 25) {
 			this.synth.poke(count, 0);
 			count++;
@@ -102,13 +103,13 @@ SidDmpPlayer.prototype.getNextFrame = function() {
 		this.finished = true;
 		this.ready = false;
 	}
-}
+};
 	
 SidDmpPlayer.prototype.generate = function (samples) {
         var data = new Array(samples*2);
         this.generateIntoBuffer(samples, data, 0);
         return data;
-}
+};
 	
 // generator
 SidDmpPlayer.prototype.generateIntoBuffer = function (samples, data, dataOffset) {
@@ -119,14 +120,14 @@ SidDmpPlayer.prototype.generateIntoBuffer = function (samples, data, dataOffset)
 
 	//console.log("Generating " + samples + " samples");
 	var samplesRemaining = samples / 2;
-		
+	var generated;
 	while (true) {
-		if (this.samplesToNextFrame != null && this.samplesToNextFrame <= samplesRemaining) {
+		if (this.samplesToNextFrame !== null && this.samplesToNextFrame <= samplesRemaining) {
 			/* generate samplesToNextFrame samples, process frame and repeat */
 			var samplesToGenerate = Math.ceil(this.samplesToNextFrame);
 			//console.log("next frame: " + this.samplesToNextFrame + ", remaining: " + samplesRemaining + ", offset: " + dataOffset + ", generate: " + samplesToGenerate);
 			if (samplesToGenerate > 0) {
-				var generated = this.synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
+				generated = this.synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
 				dataOffset += generated * 2;
 				samplesRemaining -= generated;
 				this.samplesToNextFrame -= generated;
@@ -136,14 +137,14 @@ SidDmpPlayer.prototype.generateIntoBuffer = function (samples, data, dataOffset)
 		} else {
 			/* generate samples to end of buffer */
 			if (samplesRemaining > 0) {
-				var generated = this.synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
+				generated = this.synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
 				this.samplesToNextFrame -= generated;
 			}
 			break;
 		}
 	}
 	return dataOffset - dataOffsetStart;
-}
+};
 
 // maybe flash uses this?
 //function replay(audio) {

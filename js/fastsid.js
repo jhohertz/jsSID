@@ -545,12 +545,13 @@ FastSID.prototype.do_filter = function (pVoice) {
 	}
 
 	if (this.filter_type > 0) {
+		var tmp;
+		var sample, sample2;
 		if (this.filter_type == 0x20) {
 			pVoice.filtLow += (pVoice.filtRef * this.filterDy);
 			pVoice.filtRef += (pVoice.filtIO - pVoice.filtLow - (pVoice.filtRef * this.filterResDy)) * this.filterDy;
 			pVoice.filtIO = Math.floor(pVoice.filtRef - pVoice.filtLow / 4);
 		} else if (this.filter_type == 0x40) {
-			var sample;
 			pVoice.filtLow += (pVoice.filtRef * this.filterDy) * 0.1;
 			pVoice.filtRef += (pVoice.filtIO - pVoice.filtLow - (pVoice.filtRef * this.filterResDy)) * this.filterDy;
 			sample = pVoice.filtRef - (pVoice.filtIO / 8);
@@ -562,8 +563,6 @@ FastSID.prototype.do_filter = function (pVoice) {
 			}
 			pVoice.filtIO = Math.floor(sample);
 		} else {
-			var tmp;
-			var sample, sample2;
 			pVoice.filtLow += (pVoice.filtRef * this.filterDy);
 			sample = pVoice.filtIO;
 			sample2 = sample - pVoice.filtLow;
@@ -724,7 +723,7 @@ FastSID.prototype.NSHIFT = function(v, n) {
 
 FastSID.prototype.NVALUE = function(v) {
 	return (
-    		(this.noiseLSB[v & 0xff] | this.noiseMID[(v >>> 8) & 0xff] | this.noiseMSB[(v >>> 16) & 0xff])
+		(this.noiseLSB[v & 0xff] | this.noiseMID[(v >>> 8) & 0xff] | this.noiseMSB[(v >>> 16) & 0xff])
 	);
 
 };
