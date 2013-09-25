@@ -1269,11 +1269,11 @@ SID.prototype.mute= function(channel, enable) {
 };
 
 SID.prototype.enable_filter = function(enable) {
-	filter.enable_filter(enable);
+	this.filter.enable_filter(enable);
 };
 
 SID.prototype.enable_external_filter = function(enable) {
-	extfilt.enable_filter(enable);
+	this.extfilt.enable_filter(enable);
 };
 
 SID.prototype.I0 = function(x) {

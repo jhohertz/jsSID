@@ -47,8 +47,8 @@ DAC.build_dac_table = function(dac, bits, _2R_div_R, term) {
 };
 
 // EnvelopeGenerator
-EnvelopeGenerator = function() {
-	this.set_chip_model(ReSID.chip_model.MOS6581);
+EnvelopeGenerator = function(model) {
+	this.set_chip_model(model);
 	this.reset();
 };
 
@@ -820,8 +820,7 @@ Filter.model_init[1] = {		// 8580
 	Ut: 26.0e-3,
 	k: 1.0,
 	uCox: 10e-6,
-	// 6581 only, do not set for 8580 (init relies on this)
-	//WL_vcr: 0,
+	//WL_vcr: 0,	 // 6581 only, do not set for 8580 (init relies on this)
 	WL_snake: 0,
 	dac_zero: 0,
 	dac_scale: 0,
@@ -860,9 +859,6 @@ FilterModel = function(fi) {
 	var vmax = kVddt < opamp_max ? opamp_max : kVddt;
 	var denorm = vmax - vmin;
 	var norm = 1.0 / denorm;
-	//var N16 = norm * ((1 << 16) - 1);
-	//var N30 = norm * ((1 << 30) - 1);
-	//var N31 = norm * ((1 << 31) - 1);
 	var N16 = norm * 0x0000FFFF;
 	var N30 = norm * 0x3FFFFFFF;
 	var N31 = norm * 0x7FFFFFFF;
@@ -1244,7 +1240,7 @@ Filter.prototype.clock_one = function(voice1, voice2, voice3) {
 		var dVlp = this.w0 * (this.Vbp >> 4) >> 16;
 		this.Vbp -= dVbp;
 		this.Vlp -= dVlp;
-		this.Vhp = (this.Vbp * _1024_div_Q >> 10) - this.Vlp - Vi;
+		this.Vhp = (this.Vbp * this._1024_div_Q >> 10) - this.Vlp - Vi;
 	}
 
 };
@@ -1896,35 +1892,35 @@ Filter.prototype.output = function() {
 
 Filter.prototype.solve_integrate_6581_Vlp = function(dt, mf) {
 	var kVddt = Math.floor(mf.kVddt);
-	var Vgst = kVddt - this.Vlp_x;
-	var Vgdt = kVddt - this.Vbp;
+	var Vgst = (kVddt - this.Vlp_x) >>> 0;
+	var Vgdt = (kVddt - this.Vbp) >>> 0;
 	var Vgdt_2 = Vgdt * Vgdt;
 	var n_I_snake = mf.n_snake * (Math.floor(Vgst * Vgst - Vgdt_2) >> 15);
-	var kVg = mf.vcr_kVg[(this.Vddt_Vw_2 + (Vgdt_2 >> 1)) >> 16];
+	var kVg = mf.vcr_kVg[(this.Vddt_Vw_2 + (Vgdt_2 >> 1)) >>> 16];
 	var Vgs = kVg - this.Vlp_x;
 	if (Vgs < 0) Vgs = 0;
 	var Vgd = kVg - this.Vbp;
 	if (Vgd < 0) Vgd = 0;
 	var n_I_vcr = (mf.vcr_n_Ids_term[Vgs] - mf.vcr_n_Ids_term[Vgd]) << 15;
 	this.Vlp_vc -= (n_I_snake + n_I_vcr) * dt;
-	this.Vlp_x = mf.opamp_rev[(this.Vlp_vc >> 15) + (1 << 15)];
+	this.Vlp_x = mf.opamp_rev[((this.Vlp_vc >> 15) + (1 << 15)) & 0xFFFF];
 	this.Vlp = this.Vlp_x + (this.Vlp_vc >> 14);
 };
 
 Filter.prototype.solve_integrate_6581_Vbp = function(dt, mf) {
 	var kVddt = Math.floor(mf.kVddt);
-	var Vgst = kVddt - this.Vbp_x;
-	var Vgdt = kVddt - this.Vhp;
+	var Vgst = (kVddt - this.Vbp_x) >>> 0;
+	var Vgdt = (kVddt - this.Vhp) >>> 0;
 	var Vgdt_2 = Vgdt * Vgdt;
 	var n_I_snake = mf.n_snake * (Math.floor(Vgst * Vgst - Vgdt_2) >> 15);
-	var kVg = mf.vcr_kVg[(this.Vddt_Vw_2 + (Vgdt_2 >> 1)) >> 16];
+	var kVg = mf.vcr_kVg[(this.Vddt_Vw_2 + (Vgdt_2 >> 1)) >>> 16];
 	var Vgs = kVg - this.Vbp_x;
 	if (Vgs < 0) Vgs = 0;
 	var Vgd = kVg - this.Vhp;
 	if (Vgd < 0) Vgd = 0;
 	var n_I_vcr = (mf.vcr_n_Ids_term[Vgs] - mf.vcr_n_Ids_term[Vgd]) << 15;
 	this.Vbp_vc -= (n_I_snake + n_I_vcr) * dt;
-	this.Vbp_x = mf.opamp_rev[(this.Vbp_vc >> 15) + (1 << 15)];
+	this.Vbp_x = mf.opamp_rev[((this.Vbp_vc >> 15) + (1 << 15)) & 0xFFFF];
 	this.Vbp = this.Vbp_x + (this.Vbp_vc >> 14);
 };
 
@@ -1943,11 +1939,12 @@ function ReSID (sampleRate, clkRate, method) {
 	this.fir_f_cycles_per_sample = 0;
 	this.fir_filter_scale = 0;
 
-	this.sid_model = ReSID.chip_model.MOS6581;
 
 	this.bus_value = 0;
 	this.bus_value_ttl = 0;
 	this.write_pipeline = 0;
+
+	this.sid_model = ReSID.chip_model.MOS6581;
 
 	this.voice = new Array(3);
 	for(var i = 0; i < 3; i++) {
@@ -1958,6 +1955,8 @@ function ReSID (sampleRate, clkRate, method) {
 	this.voice[0].set_sync_source(this.voice[2]);
 	this.voice[1].set_sync_source(this.voice[0]);
 	this.voice[2].set_sync_source(this.voice[1]);
+
+	this.set_chip_model(ReSID.chip_model.MOS6581);
 
 	// FIXME: hardcoded sample method. should be options.
 	this.set_sampling_parameters(clkRate, method, sampleRate);
@@ -2161,11 +2160,11 @@ ReSID.prototype.write_commit = function() {
 };
 
 ReSID.prototype.enable_filter = function(enable) {
-	filter.enable_filter(enable);
+	this.filter.enable_filter(enable);
 };
 
 ReSID.prototype.enable_external_filter = function(enable) {
-	extfilt.enable_filter(enable);
+	this.extfilt.enable_filter(enable);
 };
 
 ReSID.prototype.I0 = function(x) {
@@ -2215,20 +2214,19 @@ ReSID.prototype.set_sampling_parameters = function(clock_freq, method, sample_fr
 	this.sample_now = 0;
 
 	if (method != ReSID.sampling_method.SAMPLE_RESAMPLE && method != ReSID.sampling_method.SAMPLE_RESAMPLE_FASTMEM) {
-		this.sample = null;
-		this.fir = null;
+		this.sample = 0;
+		this.fir = 0;
 		return true;
 	}
 
-	// FIXME: this doesnt seem to apply to vice code, remove once confirmed
 	// Allocate sample buffer.
-	//if (!this.sample) {
-	//	this.sample = new Array(ReSID.const.RINGSIZE * 2);
-	//}
+	if (!this.sample) {
+		this.sample = new Array(ReSID.const.RINGSIZE * 2);
+	}
 	// Clear sample buffer.
-	//for (var j = 0; j < ReSID.const.RINGSIZE * 2; j++) {
-	//	this.sample[j] = 0;
-	//}
+	for (var j = 0; j < ReSID.const.RINGSIZE * 2; j++) {
+		this.sample[j] = 0;
+	}
 	this.sample_index = 0;
 
 	var A = -20 * (Math.log(1.0 / (1 << 16)) / Math.LN10);		// FIXME: constant
@@ -2286,8 +2284,7 @@ ReSID.prototype.set_sampling_parameters = function(clock_freq, method, sample_fr
 };
 
 ReSID.prototype.adjust_sampling_frequency = function(sample_freq) {
-	// FIXME: casting warning, using floor
-	this.cycles_per_sample = Math.floor(this.clock_frequency/sample_freq*(1 << ReSID.const.FIXP_SHIFT) + 0.5);
+	this.cycles_per_sample = Math.floor(this.clock_frequency / sample_freq*(1 << ReSID.const.FIXP_SHIFT) + 0.5);
 };
 
 
@@ -2463,7 +2460,7 @@ ReSID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_of
 		}
 		this.sample_offset = next_sample_offset & ReSID.const.FIXP_MASK;
 		// new sample output w/ offset
-		var final_sample = (this.sample_prev + (this.sample_offset * (sample_now - this.sample_prev) >> ReSID.const.FIXP_SHIFT)) / 32768;
+		var final_sample = (this.sample_prev + (this.sample_offset * (this.sample_now - this.sample_prev) >> ReSID.const.FIXP_SHIFT)) / 32768;
 		var buf_idx = s * interleave * 2 + buf_offset;
 		buf[buf_idx] = final_sample;
 		buf[buf_idx + 1] = final_sample;
