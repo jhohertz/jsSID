@@ -875,10 +875,8 @@ FilterModel = function(fi) {
 	for (var i = 0; i < fi.opamp_voltage.length; i++) {
 		// FIXME: this could be flattened into one statement
 		scaled_voltage[fi.opamp_voltage.length - 1 - i] = new Array(2);
-		scaled_voltage[fi.opamp_voltage.length - 1 - i][0] = 
-			Math.floor((N16 * (fi.opamp_voltage[i][1] - fi.opamp_voltage[i][0]) + (1 << 16)) / 2 + 0.5);
-		scaled_voltage[fi.opamp_voltage.length - 1 - i][1] =
-			N31 * (fi.opamp_voltage[i][0] - vmin);
+		scaled_voltage[fi.opamp_voltage.length - 1 - i][0] = Math.floor((N16 * (fi.opamp_voltage[i][1] - fi.opamp_voltage[i][0]) + (1 << 16)) / 2 + 0.5);
+		scaled_voltage[fi.opamp_voltage.length - 1 - i][1] = N31 * (fi.opamp_voltage[i][0] - vmin);
 	}
 
 	if (scaled_voltage[fi.opamp_voltage.length - 1][0] >= (1 << 16)) {
@@ -901,7 +899,7 @@ FilterModel = function(fi) {
 		f = opamp[j];
 		var df = f - fp;
 		// FIXME: bit inversion may bring more bits than expected?
-		opamp[j] = ((df << (16 + 11 - 15)) & ~0xffff) | (f >> 15);
+		opamp[j] = ((df << 12) & ~0xffff) | (f >> 15);
 	}
 	for (; j < (1 << 16); j++) {
 		opamp[j] = 0;
@@ -1890,12 +1888,13 @@ Filter.prototype.output = function() {
 	}
 };
 
+// Solve VLP against VBP
 Filter.prototype.solve_integrate_6581_Vlp = function(dt, mf) {
 	var kVddt = Math.floor(mf.kVddt);
-	var Vgst = (kVddt - this.Vlp_x) >>> 0;
-	var Vgdt = (kVddt - this.Vbp) >>> 0;
-	var Vgdt_2 = Vgdt * Vgdt;
-	var n_I_snake = mf.n_snake * (Math.floor(Vgst * Vgst - Vgdt_2) >> 15);
+	var Vgst = ((kVddt - this.Vlp_x) & 0xffffffff) >>> 0;
+	var Vgdt = ((kVddt - this.Vbp) & 0xffffffff) >>> 0;
+	var Vgdt_2 = ((Vgdt * Vgdt) & 0xffffffff) >>> 0;
+	var n_I_snake = mf.n_snake * (((((Vgst * Vgst) & 0xffffffff) - Vgdt_2) & 0xffffffff) >> 15);
 	var kVg = mf.vcr_kVg[(this.Vddt_Vw_2 + (Vgdt_2 >> 1)) >>> 16];
 	var Vgs = kVg - this.Vlp_x;
 	if (Vgs < 0) Vgs = 0;
@@ -1903,23 +1902,26 @@ Filter.prototype.solve_integrate_6581_Vlp = function(dt, mf) {
 	if (Vgd < 0) Vgd = 0;
 	var n_I_vcr = (mf.vcr_n_Ids_term[Vgs] - mf.vcr_n_Ids_term[Vgd]) << 15;
 	this.Vlp_vc -= (n_I_snake + n_I_vcr) * dt;
+	this.Vlp_vc &= 0xffffffff;
 	this.Vlp_x = mf.opamp_rev[((this.Vlp_vc >> 15) + (1 << 15)) & 0xFFFF];
 	this.Vlp = this.Vlp_x + (this.Vlp_vc >> 14);
 };
 
+// Solve VBP against VHP
 Filter.prototype.solve_integrate_6581_Vbp = function(dt, mf) {
 	var kVddt = Math.floor(mf.kVddt);
-	var Vgst = (kVddt - this.Vbp_x) >>> 0;
-	var Vgdt = (kVddt - this.Vhp) >>> 0;
-	var Vgdt_2 = Vgdt * Vgdt;
-	var n_I_snake = mf.n_snake * (Math.floor(Vgst * Vgst - Vgdt_2) >> 15);
+	var Vgst = ((kVddt - this.Vbp_x) & 0xffffffff) >>> 0;
+	var Vgdt = ((kVddt - this.Vhp) & 0xffffffff) >>> 0;
+	var Vgdt_2 = ((Vgdt * Vgdt) & 0xffffffff) >>> 0;
+	var n_I_snake = mf.n_snake * (((((Vgst * Vgst) & 0xffffffff) - Vgdt_2) & 0xffffffff) >> 15);
 	var kVg = mf.vcr_kVg[(this.Vddt_Vw_2 + (Vgdt_2 >> 1)) >>> 16];
-	var Vgs = kVg - this.Vbp_x;
+	var Vgs = (kVg - this.Vbp_x) & 0xffffffff;
 	if (Vgs < 0) Vgs = 0;
-	var Vgd = kVg - this.Vhp;
+	var Vgd = (kVg - this.Vhp) & 0xffffffff;
 	if (Vgd < 0) Vgd = 0;
 	var n_I_vcr = (mf.vcr_n_Ids_term[Vgs] - mf.vcr_n_Ids_term[Vgd]) << 15;
 	this.Vbp_vc -= (n_I_snake + n_I_vcr) * dt;
+	this.Vbp_vc &= 0xffffffff;
 	this.Vbp_x = mf.opamp_rev[((this.Vbp_vc >> 15) + (1 << 15)) & 0xFFFF];
 	this.Vbp = this.Vbp_x + (this.Vbp_vc >> 14);
 };
@@ -2418,7 +2420,7 @@ ReSID.prototype.clock = function(delta_t, buf, n, interleave, buf_offset) {
 ReSID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
 	var s;
 	for (s = 0; s < n; s++) {
-		var next_sample_offset = this.sample_offset + this.cycles_per_sample + (1 << (ReSID.const.FIXP_SHIFT - 1));
+		var next_sample_offset = (this.sample_offset + this.cycles_per_sample + (1 << (ReSID.const.FIXP_SHIFT - 1))) & 0xffffffff;
 		var delta_t_sample = next_sample_offset >> ReSID.const.FIXP_SHIFT;
 		if (delta_t_sample > delta_t) {
 			delta_t_sample = delta_t;
@@ -2428,7 +2430,7 @@ ReSID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
 			this.sample_offset -= delta_t_sample << ReSID.const.FIXP_SHIFT;
 			break;
 		}
-		this.sample_offset = (next_sample_offset & ReSID.const.FIXP_MASK) - (1 << (ReSID.const.FIXP_SHIFT - 1));
+		this.sample_offset = ((next_sample_offset & ReSID.const.FIXP_MASK) - (1 << (ReSID.const.FIXP_SHIFT - 1))) & 0xffffffff;
 		// new sample output w/ offset
 		var final_sample = parseFloat(this.output()) / 32768;
 		var buf_idx = s * interleave * 2 + buf_offset;
