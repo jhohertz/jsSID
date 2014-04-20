@@ -58,7 +58,9 @@ function SidPlayer(opts) {
 
         var that = this;
         this.sink = Sink(function(b, c){that.sinkCall(b,c);});
-        this.synth = SID.factory({
+
+        this.factory = new SIDFactory();
+        this.synth = this.factory.create({
                 quality: this.quality,
                 clock: this.clock,
                 mixrate: this.sink.sampleRate

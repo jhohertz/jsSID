@@ -1985,30 +1985,6 @@ ReSID.sampling_method = Object.freeze({
 	SAMPLE_RESAMPLE_FASTMEM: {}
 });
 
-ReSID.quality = Object.freeze({
-	low: ["TinySID", null],
-	good: ["ReSID Fast", ReSID.sampling_method.SAMPLE_FAST],
-	better: ["ReSID Interpolate", ReSID.sampling_method.SAMPLE_INTERPOLATE],
-	best: ["ReSID Resample/Interpolate", ReSID.sampling_method.SAMPLE_RESAMPLE],
-	broken: ["ReSID Resample/Fastmem", ReSID.sampling_method.SAMPLE_RESAMPLE_FASTMEM]
-	// FIXME: Make above less broken
-});
-
-ReSID.factory = function(f_opts) {
-	console.log("factory", f_opts);
-	f_opts = f_opts || {};
-	var f_quality = f_opts.quality || ReSID.quality.good;
-	var f_clock = f_opts.clock || ReSID.const.CLK_PAL;
-	var f_sampleRate = f_opts.mixrate || 44100;
-	var f_newsid;
-	if(f_quality == ReSID.quality.low) {
-		f_newsid = new SidSynth(f_sampleRate);
-	} else {
-		f_newsid = new ReSID(f_sampleRate, f_clock, f_quality[1]);
-	}
-	return f_newsid;
-};
-
 // hack to let players work while we switch NG in and out
 SID = { quality: ReSID.quality, factory: ReSID.factory, const: ReSID.const };
 
