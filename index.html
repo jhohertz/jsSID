@@ -60,6 +60,7 @@
                 <ul class="nav nav-tabs">
                   <li class="active"><a href="#tab-sids" data-toggle="tab">SID Files</a></li>
                   <li><a href="#tab-dumps" data-toggle="tab">Register Dumps</a></li>
+                  <li><a href="#tab-quality" data-toggle="tab">Quality</a></li>
                 </ul>
                 <div class="tab-content">
                   <div class="tab-pane active" id="tab-sids">
@@ -96,6 +97,36 @@
                       <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Enforcer.dmp'))">Enforcer.dmp</a></li>
                     </ul>
                   </div>
+                  <div class="tab-pane" id="tab-quality">
+                    <p>Quality Setting:</p>
+
+                    <label class="radio">
+                      <input type="radio" name="quality" id="optionsQualityLow" value="low">
+                      Low - TinySID
+                    </label>
+
+                    <label class="radio">
+                      <input type="radio" name="quality" id="optionsQualityMedium" value="medium">
+                      Medium - FastSID
+                    </label>
+
+                    <label class="radio">
+                      <input type="radio" name="quality" id="optionsQualityGood" value="good" checked>
+                      Good - ReSID Fast
+                    </label>
+
+                    <label class="radio">
+                      <input type="radio" name="quality" id="optionsQualityBetter" value="better">
+                      Better - ReSID Interpolate
+                    </label>
+
+                    <label class="radio">
+                      <input type="radio" name="quality" id="optionsQualityBest" value="best">
+                      Best - ReSID Resample/Interpolate
+                    </label>
+
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -108,7 +139,8 @@
                   <a class="btn" href="#" id="stop"><i class="icon-stop"></i></a>
                 </div>
               </div>
-            </div>
+           </div>
+
 
           </div>
         </div>
@@ -131,6 +163,17 @@
     <script src="js/sink.js"></script>
     <script>
 
+      function getQuality() {
+        var selectedVal = "";
+        var selected = $("input[type='radio'][name='quality']:checked");
+        if (selected.length > 0) {
+          selectedVal = selected.val();
+        }
+        if(selectedVal == "") {
+          selectedVal = "medium";
+        }
+        return SIDFactory.quality[selectedVal];
+      }
 
       function showalert(message) {
         $("#alertarea").html("<div class=\"alert\">" +
@@ -142,7 +185,7 @@
 
 
       function playsid(file) {
-        sidPlayer = new SidPlayer({ quality: SIDFactory.quality.good });
+        sidPlayer = new SidPlayer({ quality: getQuality() });
         $("#status").text("Loading: " + file);
         $("#play").unbind("click").click(function(){sidPlayer.play()});
         $("#stop").unbind("click").click(function(){sidPlayer.stop()});
@@ -153,7 +196,7 @@
       }
 
       function playdmp(file) {
-        sidDmpPlayer = new SidDmpPlayer( { quality: SIDFactory.quality.good });
+        sidDmpPlayer = new SidDmpPlayer( { quality: getQuality() });
         $("#status").text("Loading: " + file);
         $("#play").unbind("click").click(function(){sidDmpPlayer.play()});
         $("#stop").unbind("click").click(function(){sidDmpPlayer.stop()});
