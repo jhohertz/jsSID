@@ -42,110 +42,136 @@
     <div class="container">
       <div class="row">
         <div class="span9">
-          <p>Click a file to play. Works in Firefox/Chrome on desktop + ios6</p>
-          <p>You'll need to reload to stop/change songs for the moment as well.</p>
-
           <div id="alertarea">
             <div class="alert">
               <button type="button" class="close" data-dismiss="alert">&times;</button>
-              <strong>Warning!</strong> Best check yo self, you're not looking too good.
+              Select a SID file or register dump to play back.
             </div>
-          </div>
-
-          <div class="row">
-
-            <!-- current file selector -->
-            <div class="span6">
-              <div class="tabbable"> <!-- Only required for left/right tabs -->
-                <ul class="nav nav-tabs">
-                  <li class="active"><a href="#tab-sids" data-toggle="tab">SID Files</a></li>
-                  <li><a href="#tab-dumps" data-toggle="tab">Register Dumps</a></li>
-                  <li><a href="#tab-quality" data-toggle="tab">Quality</a></li>
-                </ul>
-                <div class="tab-content">
-                  <div class="tab-pane active" id="tab-sids">
-                    <p>SID files</p>
-                    <ul class="unstyled">
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Last_Wader.sid'))">Last_Wader.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Sweet_JB.sid'))">Sweet_JB.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Robocop_3.sid'))">Robocop_3.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Voe_Taevas.sid'))">Voe_Taevas.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Monty_on_the_Run.sid'))">Monty_on_the_Run.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Anal_ogue.sid'))">Anal_ogue.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Azmagutah_6581.sid'))">Azmagutah_6581.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Electronic_Transfer.sid'))">Electronic_Transfer.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/National_Park_GRAVE_DANGER.sid'))">National_Park_GRAVE_DANGER.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Viidakko.sid'))">Viidakko.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Driller.sid'))">Driller.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Arabian_Lemmings.sid'))">Arabian_Lemmings.sid</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Sanxion.sid'))">Sanxion.sid</a></li>
-                    </ul>
-                  </div>
-                  <div class="tab-pane" id="tab-dumps">
-                    <p>SID register captures</p>
-                    <ul class="unstyled">
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Autumn.dmp'))">Autumn.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Monty.dmp'))">Monty.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Robocop3.dmp'))">Robocop3.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Mr_Marvellous.dmp'))">Mr_Marvellous.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Lightforce.dmp'))">Lightforce.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Speedball.dmp'))">Speedball.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Super_Mario_Land.dmp'))">Super_Mario_Land.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Cybernoid.dmp'))">Cybernoid.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Batman2.dmp'))">Batman2.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Nemesis.dmp'))">Nemesis.dmp</a></li>
-                      <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Enforcer.dmp'))">Enforcer.dmp</a></li>
-                    </ul>
-                  </div>
-                  <div class="tab-pane" id="tab-quality">
-                    <p>Quality Setting:</p>
-
-                    <label class="radio">
-                      <input type="radio" name="quality" id="optionsQualityLow" value="low">
-                      Low - TinySID
-                    </label>
-
-                    <label class="radio">
-                      <input type="radio" name="quality" id="optionsQualityMedium" value="medium">
-                      Medium - FastSID
-                    </label>
-
-                    <label class="radio">
-                      <input type="radio" name="quality" id="optionsQualityGood" value="good" checked>
-                      Good - ReSID Fast
-                    </label>
-
-                    <label class="radio">
-                      <input type="radio" name="quality" id="optionsQualityBetter" value="better">
-                      Better - ReSID Interpolate
-                    </label>
-
-                    <label class="radio">
-                      <input type="radio" name="quality" id="optionsQualityBest" value="best">
-                      Best - ReSID Resample/Interpolate
-                    </label>
-
-                  </div>
-
-                </div>
-              </div>
-            </div>
-
-            <div class="span3">
-              <!-- transport controls -->
-              <div class="btn-toolbar">
-                <div class="btn-group">
-                  <a class="btn" href="#" id="play"><i class="icon-play"></i></a>
-                  <a class="btn" href="#" id="stop"><i class="icon-stop"></i></a>
-                </div>
-              </div>
-           </div>
-
-
           </div>
         </div>
       </div>
-  
+
+      <div class="row">
+        <!-- current file selector -->
+        <div class="span6">
+          <div class="tabbable"> <!-- Only required for left/right tabs -->
+            <ul class="nav nav-tabs">
+              <li class="active"><a href="#tab-sids" data-toggle="tab">SID Files</a></li>
+              <li><a href="#tab-dumps" data-toggle="tab">Register Dumps</a></li>
+              <li><a href="#tab-quality" data-toggle="tab">Quality</a></li>
+              <li><a href="#tab-model" data-toggle="tab">Model</a></li>
+              <li><a href="#tab-about" data-toggle="tab">About</a></li>
+            </ul>
+            <div class="tab-content">
+              <div class="tab-pane active" id="tab-sids">
+                <ul class="unstyled">
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Last_Wader.sid'))">Last_Wader.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Sweet_JB.sid'))">Sweet_JB.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Robocop_3.sid'))">Robocop_3.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Voe_Taevas.sid'))">Voe_Taevas.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Monty_on_the_Run.sid'))">Monty_on_the_Run.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Anal_ogue.sid'))">Anal_ogue.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Azmagutah_6581.sid'))">Azmagutah_6581.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Electronic_Transfer.sid'))">Electronic_Transfer.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/National_Park_GRAVE_DANGER.sid'))">National_Park_GRAVE_DANGER.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Viidakko.sid'))">Viidakko.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Driller.sid'))">Driller.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Arabian_Lemmings.sid'))">Arabian_Lemmings.sid</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playsid('sid/real/Sanxion.sid'))">Sanxion.sid</a></li>
+                </ul>
+              </div>
+              <div class="tab-pane" id="tab-dumps">
+                <ul class="unstyled">
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Autumn.dmp'))">Autumn.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Monty.dmp'))">Monty.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Robocop3.dmp'))">Robocop3.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Mr_Marvellous.dmp'))">Mr_Marvellous.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Lightforce.dmp'))">Lightforce.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Speedball.dmp'))">Speedball.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Super_Mario_Land.dmp'))">Super_Mario_Land.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Cybernoid.dmp'))">Cybernoid.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Batman2.dmp'))">Batman2.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Nemesis.dmp'))">Nemesis.dmp</a></li>
+                  <li><i class="icon-music"></i> <a href="javascript:void(playdmp('sid/dmp/Enforcer.dmp'))">Enforcer.dmp</a></li>
+                </ul>
+              </div>
+              <div class="tab-pane" id="tab-quality">
+                <p>Quality setting changes take effect on the next track loaded.</p>
+
+                <label class="radio">
+                  <input type="radio" name="quality" id="optionsQualityLow" value="low">
+                  Low - TinySID
+                </label>
+
+                <label class="radio">
+                  <input type="radio" name="quality" id="optionsQualityMedium" value="medium">
+                  Medium - FastSID
+                </label>
+
+                <label class="radio">
+                  <input type="radio" name="quality" id="optionsQualityGood" value="good" checked>
+                  Good - ReSID Fast
+                </label>
+
+                <label class="radio">
+                  <input type="radio" name="quality" id="optionsQualityBetter" value="better">
+                  Better - ReSID Interpolate
+                </label>
+
+                <label class="radio">
+                  <input type="radio" name="quality" id="optionsQualityBest" value="best">
+                  Best - ReSID Resample/Interpolate
+                </label>
+
+              </div>
+              <div class="tab-pane" id="tab-model">
+                <p>
+                  <strong>WARNING:</strong> Not yet working, defaults to 6581/PAL if capable.
+                  Model setting changes take effect on the next track loaded.
+                </p>
+
+                <h4>Model:</h4>
+                <label class="radio">
+                  <input type="radio" name="sidmodel" id="optionsModel6581" value="6581" checked>
+                  6581
+                </label>
+
+                <label class="radio">
+                  <input type="radio" name="sidmodel" id="optionsModel8580" value="8580">
+                  8580
+                </label>
+
+                <h4>Frequency:</h4>
+                <label class="radio">
+                  <input type="radio" name="sidfreq" id="optionsFreqPAL" value="PAL" checked>
+                  PAL
+                </label>
+
+                <label class="radio">
+                  <input type="radio" name="sidfreq" id="optionsFreqNTSC" value="NTSC">
+                  NTSC
+                </label>
+              </div>
+              <div class="tab-pane" id="tab-about">
+                <p>Works in Firefox/Chrome on desktop + ios6+ and android</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="span3">
+          <!-- transport controls -->
+          <div class="btn-toolbar">
+            <div class="btn-group">
+              <a class="btn" href="#" id="play"><i class="icon-play"></i></a>
+              <a class="btn" href="#" id="stop"><i class="icon-stop"></i></a>
+            </div>
+          </div>
+       </div>
+
+      </div>
+
+    </div>
 
     <script src="http://code.jquery.com/jquery.js"></script>
     <script src="js/bootstrap.min.js"></script>
