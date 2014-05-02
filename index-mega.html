@@ -69,7 +69,7 @@
 		<script>
 
 			function playsid(file) {
-				sidPlayer = new SidPlayer({ quality: SID.quality.good });
+				sidPlayer = new SidPlayer({ quality: SIDFactory.quality.good });
 				$("#status").text("Loading: " + file);
 				$("#play").unbind("click").click(function(){sidPlayer.play()});
 				$("#stop").unbind("click").click(function(){sidPlayer.stop()});

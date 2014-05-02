@@ -39,7 +39,7 @@
                 <script>
 
                         function play(file) {
-                        	sidDmpPlayer = new SidDmpPlayer( { quality: SID.quality.low });
+                        	sidDmpPlayer = new SidDmpPlayer( { quality: SIDFactory.quality.low });
                                 $("#status").text("Loading: " + file);
                                 Stream.loadRemoteFile(file, function(data) {
                                         sidDmpPlayer.loadFileFromData(data)

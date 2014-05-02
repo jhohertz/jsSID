@@ -2,7 +2,7 @@
 function SidDmpPlayer(opts) {
 	console.log("player opts", opts);
         opts = opts || {};
-        this.quality = opts.quality || SID.quality.good;
+        this.quality = opts.quality || SIDFactory.quality.good;
         this.clock = opts.clock || SID.const.CLK_PAL;
 	// state signaled to audiomanager
 	this.finished = false;

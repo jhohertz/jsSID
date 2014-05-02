@@ -43,7 +43,7 @@
 		<script>
 
 			function play(file) {
-				sidPlayer = new SidPlayer({ quality: SID.quality.good });
+				sidPlayer = new SidPlayer({ quality: SIDFactory.quality.good });
 				$("#status").text("Loading: " + file);
 				Stream.loadRemoteFile(file, function(data) {
 					sidPlayer.loadFileFromData(data)

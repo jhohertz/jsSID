@@ -47,7 +47,7 @@ SidFile.prototype.loadFileFromData = function(data) {
 // constructor
 function SidPlayer(opts) {
         opts = opts || {};
-        this.quality = opts.quality || SID.quality.good;
+        this.quality = opts.quality || SIDFactory.quality.good;
         this.clock = opts.clock || SID.const.CLK_PAL;
 
 	this.play_active = true;
