@@ -44,6 +44,12 @@ SidFile.prototype.loadFileFromData = function(data) {
 
 };
 
+SidFile.prototype.infostring = function() {
+	var ret = "";
+        ret += this.name + " ( " + this.author + " / &copy; " + this.copyright + " )";
+	return ret;
+}
+
 // constructor
 function SidPlayer(opts) {
         opts = opts || {};
@@ -67,6 +73,10 @@ function SidPlayer(opts) {
         });
 
 }
+
+SidPlayer.prototype.getSidFile = function() {
+	return this.sidfile;
+};
 
 // to use sink vs audiomanager
 SidPlayer.prototype.sinkCall = function(buffer, channels) {

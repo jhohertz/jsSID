@@ -52,6 +52,24 @@
       </div>
 
       <div class="row">
+        <div class="span1">
+          <!-- transport controls -->
+          <div class="btn-toolbar pull-left">
+            <div class="btn-group">
+              <a class="btn" href="#" id="play"><i class="icon-play"></i></a>
+              <a class="btn" href="#" id="stop"><i class="icon-stop"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="span8">
+          <br/>
+          <div id="trackinfo">
+            <p>No file loaded</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
         <!-- current file selector -->
         <div class="span6">
           <div class="tabbable"> <!-- Only required for left/right tabs -->
@@ -159,16 +177,6 @@
           </div>
         </div>
 
-        <div class="span3">
-          <!-- transport controls -->
-          <div class="btn-toolbar">
-            <div class="btn-group">
-              <a class="btn" href="#" id="play"><i class="icon-play"></i></a>
-              <a class="btn" href="#" id="stop"><i class="icon-stop"></i></a>
-            </div>
-          </div>
-       </div>
-
       </div>
 
     </div>
@@ -209,7 +217,7 @@
         );
       }
 
-
+      var sidPlayer;
       function playsid(file) {
         sidPlayer = new SidPlayer({ quality: getQuality() });
         $("#status").text("Loading: " + file);
@@ -217,6 +225,7 @@
         $("#stop").unbind("click").click(function(){sidPlayer.stop()});
         Stream.loadRemoteFile(file, function(data) {
           sidPlayer.loadFileFromData(data)
+          $("#trackinfo").html(sidPlayer.getSidFile().infostring());
           showalert("Loaded " + file + ", press play");
         })
       }
@@ -228,6 +237,7 @@
         $("#stop").unbind("click").click(function(){sidDmpPlayer.stop()});
         Stream.loadRemoteFile(file, function(data) {
           sidDmpPlayer.loadFileFromData(data)
+          $("#trackinfo").html(file);
           showalert("Loaded " + file + ", press play");
         })
       }
