@@ -1,23 +1,62 @@
 
+// Main Object
+jsSID.ReSID = function(sampleRate, clkRate, method) {
+	sampleRate = sampleRate || 44100;
+	clkRate = clkRate || jsSID.chip.clock.PAL;
+	method = method || jsSID.ReSID.sampling_method.SAMPLE_FAST;
+
+	this.bus_value = 0;
+	this.bus_value_ttl = 0;
+	this.ext_in = 0;
+
+	// these are arrays/tables built at runtime
+	this.sample = null;
+	this.fir = null;
+
+	this.voice = new Array(3);
+	for(var i = 0; i < 3; i++) {
+		this.voice[i] = new jsSID.ReSID.Voice();
+	}
+	this.filter = new jsSID.ReSID.Filter();
+	this.extfilt = new jsSID.ReSID.ExternalFilter();
+	this.voice[0].set_sync_source(this.voice[2]);
+	this.voice[1].set_sync_source(this.voice[0]);
+	this.voice[2].set_sync_source(this.voice[1]);
+
+	// FIXME: hardcoded sample method. should be options.
+	this.set_sampling_parameters(clkRate, method, sampleRate);
+}
+//FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter we don't.
+
+jsSID.ReSID.const = Object.freeze({
+	FIR_N: 125,
+	FIR_RES_INTERPOLATE: 285,
+	FIR_RES_FAST: 51473,
+	FIR_SHIFT: 15,
+	RINGSIZE: 16384,
+	FIXP_SHIFT: 16,
+	FIXP_MASK: 0xffff
+});
+
 // EnvelopeGenerator
-EnvelopeGenerator = function() {
+jsSID.ReSID.EnvelopeGenerator = function() {
 	this.reset();
 };
 
-EnvelopeGenerator.State = Object.freeze({
+jsSID.ReSID.EnvelopeGenerator.State = Object.freeze({
 	ATTACK: {}, DECAY_SUSTAIN: {}, RELEASE: {}
 });
 
-EnvelopeGenerator.rate_counter_period = Array(
+jsSID.ReSID.EnvelopeGenerator.rate_counter_period = Array(
 	9, 32, 63, 95, 149, 220, 267, 313, 392, 977, 1954, 3126, 3907, 11720, 19532, 31251
 );
 
 // this one seems like overkill... idx +  (idx<<4) should do it...
-EnvelopeGenerator.sustain_level = Array(
+jsSID.ReSID.EnvelopeGenerator.sustain_level = Array(
 	0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff
 );
 
-EnvelopeGenerator.prototype.reset = function() {
+jsSID.ReSID.EnvelopeGenerator.prototype.reset = function() {
 	this.envelope_counter = 0;
 	this.attack = 0;
 	this.decay = 0;
@@ -27,52 +66,52 @@ EnvelopeGenerator.prototype.reset = function() {
 	this.rate_counter = 0;
 	this.exponential_counter = 0;
 	this.exponential_counter_period = 1;
-	this.state = EnvelopeGenerator.State.RELEASE;
-	this.rate_period = EnvelopeGenerator.rate_counter_period[this.release];
+	this.state = jsSID.ReSID.EnvelopeGenerator.State.RELEASE;
+	this.rate_period = jsSID.ReSID.EnvelopeGenerator.rate_counter_period[this.release];
 	this.hold_zero = true;
 };
 
-EnvelopeGenerator.prototype.writeCONTROL_REG = function(control) {
+jsSID.ReSID.EnvelopeGenerator.prototype.writeCONTROL_REG = function(control) {
 	var gate_next = control & 0x01;
 	if (!this.gate && gate_next) {
-		this.state = EnvelopeGenerator.State.ATTACK;
-		this.rate_period = EnvelopeGenerator.rate_counter_period[this.attack];
+		this.state = jsSID.ReSID.EnvelopeGenerator.State.ATTACK;
+		this.rate_period = jsSID.ReSID.EnvelopeGenerator.rate_counter_period[this.attack];
 		this.hold_zero = false;
 	} else if (this.gate && !gate_next) {
-		this.state = EnvelopeGenerator.State.RELEASE;
-		this.rate_period = EnvelopeGenerator.rate_counter_period[this.release];
+		this.state = jsSID.ReSID.EnvelopeGenerator.State.RELEASE;
+		this.rate_period = jsSID.ReSID.EnvelopeGenerator.rate_counter_period[this.release];
 	}
 	this.gate = gate_next;
 };
 
-EnvelopeGenerator.prototype.writeATTACK_DECAY = function(attack_decay) {
+jsSID.ReSID.EnvelopeGenerator.prototype.writeATTACK_DECAY = function(attack_decay) {
 	this.attack = (attack_decay >> 4) & 0x0f;
 	this.decay = attack_decay & 0x0f;
-	if (this.state == EnvelopeGenerator.State.ATTACK) {
-		this.rate_period = EnvelopeGenerator.rate_counter_period[this.attack];
-	} else if (this.state == EnvelopeGenerator.State.DECAY_SUSTAIN) {
-		this.rate_period = EnvelopeGenerator.rate_counter_period[this.decay];
+	if (this.state == jsSID.ReSID.EnvelopeGenerator.State.ATTACK) {
+		this.rate_period = jsSID.ReSID.EnvelopeGenerator.rate_counter_period[this.attack];
+	} else if (this.state == jsSID.ReSID.EnvelopeGenerator.State.DECAY_SUSTAIN) {
+		this.rate_period = jsSID.ReSID.EnvelopeGenerator.rate_counter_period[this.decay];
 	}
 };
 
-EnvelopeGenerator.prototype.writeSUSTAIN_RELEASE = function(sustain_release) {
+jsSID.ReSID.EnvelopeGenerator.prototype.writeSUSTAIN_RELEASE = function(sustain_release) {
 	this.sustain = (sustain_release >> 4) & 0x0f;
 	this.release = sustain_release & 0x0f;
-	if (this.state == EnvelopeGenerator.State.RELEASE) {
-		this.rate_period = EnvelopeGenerator.rate_counter_period[this.release];
+	if (this.state == jsSID.ReSID.EnvelopeGenerator.State.RELEASE) {
+		this.rate_period = jsSID.ReSID.EnvelopeGenerator.rate_counter_period[this.release];
 	}
 };
 
-EnvelopeGenerator.prototype.readENV = function() {
+jsSID.ReSID.EnvelopeGenerator.prototype.readENV = function() {
 	return this.output();
 };
 
-EnvelopeGenerator.prototype.output = function() {
+jsSID.ReSID.EnvelopeGenerator.prototype.output = function() {
 	return this.envelope_counter;
 };
 
 // definitions of EnvelopeGenerator methods below here are called for every sample
-EnvelopeGenerator.prototype.clock_one = function() {
+jsSID.ReSID.EnvelopeGenerator.prototype.clock_one = function() {
 	if (++this.rate_counter & 0x8000) {
 		++this.rate_counter;
 		this.rate_counter &= 0x7fff;
@@ -83,7 +122,7 @@ EnvelopeGenerator.prototype.clock_one = function() {
 	this.clock_common();
 };
 
-EnvelopeGenerator.prototype.clock_delta = function(delta_t) {
+jsSID.ReSID.EnvelopeGenerator.prototype.clock_delta = function(delta_t) {
 	var rate_step = this.rate_period - this.rate_counter;
 	if (rate_step <= 0) {
 		rate_step += 0x7fff;
@@ -108,29 +147,29 @@ EnvelopeGenerator.prototype.clock_delta = function(delta_t) {
 };
 
 // FIXME: this is part of the fast path, maybe factoring it out was not the best?
-EnvelopeGenerator.prototype.clock_common = function() {
+jsSID.ReSID.EnvelopeGenerator.prototype.clock_common = function() {
 	this.rate_counter = 0;
-	if (this.state == EnvelopeGenerator.State.ATTACK || ++this.exponential_counter == this.exponential_counter_period) {
+	if (this.state == jsSID.ReSID.EnvelopeGenerator.State.ATTACK || ++this.exponential_counter == this.exponential_counter_period) {
 		this.exponential_counter = 0;
 		if (this.hold_zero) {
 			return;
 		}
 		switch (this.state) {
-			case EnvelopeGenerator.State.ATTACK:
+			case jsSID.ReSID.EnvelopeGenerator.State.ATTACK:
 				++this.envelope_counter;
 				this.envelope_counter &= 0xff;
 				if (this.envelope_counter == 0xff) {
-					this.state = EnvelopeGenerator.State.DECAY_SUSTAIN;
-					this.rate_period = EnvelopeGenerator.rate_counter_period[this.decay];
+					this.state = jsSID.ReSID.EnvelopeGenerator.State.DECAY_SUSTAIN;
+					this.rate_period = jsSID.ReSID.EnvelopeGenerator.rate_counter_period[this.decay];
 				}
 				break;
-			case EnvelopeGenerator.State.DECAY_SUSTAIN:
-				if (this.envelope_counter != EnvelopeGenerator.sustain_level[this.sustain]) {
+			case jsSID.ReSID.EnvelopeGenerator.State.DECAY_SUSTAIN:
+				if (this.envelope_counter != jsSID.ReSID.EnvelopeGenerator.sustain_level[this.sustain]) {
 					--this.envelope_counter;
 					this.envelope_counter &= 0xff;
 				}
 				break;
-			case EnvelopeGenerator.State.RELEASE:
+			case jsSID.ReSID.EnvelopeGenerator.State.RELEASE:
 				--this.envelope_counter;
 				this.envelope_counter &= 0xff;
 				break;
@@ -139,7 +178,7 @@ EnvelopeGenerator.prototype.clock_common = function() {
 	}
 };
 
-EnvelopeGenerator.prototype.set_exponential_counter = function() {
+jsSID.ReSID.EnvelopeGenerator.prototype.set_exponential_counter = function() {
 	switch (this.envelope_counter) {
 		case 0xff:
 			this.exponential_counter_period = 1;
@@ -167,27 +206,27 @@ EnvelopeGenerator.prototype.set_exponential_counter = function() {
 };
 
 // Waveform object
-function WaveformGenerator() {
+jsSID.ReSID.WaveformGenerator = function() {
 	this.sync_source = this;
 	this.set_chip_model(jsSID.chip.model.MOS6581);
 	this.reset();
 }
 
-WaveformGenerator.prototype.set_chip_model = function(model) {
+jsSID.ReSID.WaveformGenerator.prototype.set_chip_model = function(model) {
 	if (model == jsSID.chip.model.MOS6581) {
-		this.wave__ST = WaveformGenerator.comboTable.wave6581__ST;
-		this.wave_P_T = WaveformGenerator.comboTable.wave6581_P_T;
-		this.wave_PS_ = WaveformGenerator.comboTable.wave6581_PS_;
-		this.wave_PST = WaveformGenerator.comboTable.wave6581_PST;
+		this.wave__ST = jsSID.ReSID.WaveformGenerator.comboTable.wave6581__ST;
+		this.wave_P_T = jsSID.ReSID.WaveformGenerator.comboTable.wave6581_P_T;
+		this.wave_PS_ = jsSID.ReSID.WaveformGenerator.comboTable.wave6581_PS_;
+		this.wave_PST = jsSID.ReSID.WaveformGenerator.comboTable.wave6581_PST;
 	} else {
-		this.wave__ST = WaveformGenerator.comboTable.wave8580__ST;
-		this.wave_P_T = WaveformGenerator.comboTable.wave8580_P_T;
-		this.wave_PS_ = WaveformGenerator.comboTable.wave8580_PS_;
-		this.wave_PST = WaveformGenerator.comboTable.wave8580_PST;
+		this.wave__ST = jsSID.ReSID.WaveformGenerator.comboTable.wave8580__ST;
+		this.wave_P_T = jsSID.ReSID.WaveformGenerator.comboTable.wave8580_P_T;
+		this.wave_PS_ = jsSID.ReSID.WaveformGenerator.comboTable.wave8580_PS_;
+		this.wave_PST = jsSID.ReSID.WaveformGenerator.comboTable.wave8580_PST;
 	}
 };
 
-WaveformGenerator.prototype.reset = function() {
+jsSID.ReSID.WaveformGenerator.prototype.reset = function() {
 	this.accumulator = 0;
 	this.shift_register = 0x7ffff8;
 	this.freq = 0;
@@ -199,28 +238,28 @@ WaveformGenerator.prototype.reset = function() {
 	this.msb_rising = false;
 };
 
-WaveformGenerator.prototype.set_sync_source = function(source) {
+jsSID.ReSID.WaveformGenerator.prototype.set_sync_source = function(source) {
 	this.sync_source = source;
 	source.sync_dest = this;
 };
 
-WaveformGenerator.prototype.writeFREQ_LO = function(freq_lo) {
+jsSID.ReSID.WaveformGenerator.prototype.writeFREQ_LO = function(freq_lo) {
 	this.freq = (this.freq & 0xff00) | (freq_lo & 0x00ff);
 };
 
-WaveformGenerator.prototype.writeFREQ_HI = function(freq_hi) {
+jsSID.ReSID.WaveformGenerator.prototype.writeFREQ_HI = function(freq_hi) {
 	this.freq = ((freq_hi << 8) & 0xff00) | (this.freq & 0x00ff);
 };
 
-WaveformGenerator.prototype.writePW_LO = function(pw_lo) {
+jsSID.ReSID.WaveformGenerator.prototype.writePW_LO = function(pw_lo) {
 	this.pw = (this.pw & 0xf00) | (pw_lo & 0x0ff);
 };
 
-WaveformGenerator.prototype.writePW_HI = function(pw_hi) {
+jsSID.ReSID.WaveformGenerator.prototype.writePW_HI = function(pw_hi) {
 	this.pw = ((pw_hi << 8) & 0xf00) | (this.pw & 0x0ff);
 };
 
-WaveformGenerator.prototype.writeCONTROL_REG = function(control) {
+jsSID.ReSID.WaveformGenerator.prototype.writeCONTROL_REG = function(control) {
 	this.waveform = (control >> 4) & 0x0f;
 	this.ring_mod = control & 0x04;
 	this.sync = control & 0x02;
@@ -234,12 +273,12 @@ WaveformGenerator.prototype.writeCONTROL_REG = function(control) {
 	this.test = test_next;
 };
 
-WaveformGenerator.prototype.readOSC = function() {
+jsSID.ReSID.WaveformGenerator.prototype.readOSC = function() {
 	return this.output() >> 4;
 };
 
 // definitions of EnvelopeGenerator methods below here are called for every sample
-WaveformGenerator.prototype.clock_one = function() {
+jsSID.ReSID.WaveformGenerator.prototype.clock_one = function() {
 	if (this.test) {
 		return;
 	}
@@ -255,7 +294,7 @@ WaveformGenerator.prototype.clock_one = function() {
 	}
 };
 
-WaveformGenerator.prototype.clock_delta = function(delta_t) {
+jsSID.ReSID.WaveformGenerator.prototype.clock_delta = function(delta_t) {
 	if (this.test) {
 		return;
 	}
@@ -288,31 +327,31 @@ WaveformGenerator.prototype.clock_delta = function(delta_t) {
 	}
 };
 
-WaveformGenerator.prototype.synchronize = function() {
+jsSID.ReSID.WaveformGenerator.prototype.synchronize = function() {
 	if (this.msb_rising && this.sync_dest.sync && !(this.sync && this.sync_source.msb_rising)) {
 		this.sync_dest.accumulator = 0;
 	}
 };
 
-WaveformGenerator.prototype.output____ = function() {
+jsSID.ReSID.WaveformGenerator.prototype.output____ = function() {
 	return 0x000;
 };
 
-WaveformGenerator.prototype.output___T = function() {
+jsSID.ReSID.WaveformGenerator.prototype.output___T = function() {
 	var msb = (this.ring_mod ? this.accumulator ^ this.sync_source.accumulator : this.accumulator) & 0x800000;
 	// FIXME: may need to mask inversion here
 	return ((msb ? ~this.accumulator : this.accumulator) >> 11) & 0xfff;
 };
 
-WaveformGenerator.prototype.output__S_ = function() {
+jsSID.ReSID.WaveformGenerator.prototype.output__S_ = function() {
 	return this.accumulator >> 12;
 };
 
-WaveformGenerator.prototype.output_P__ = function() {
+jsSID.ReSID.WaveformGenerator.prototype.output_P__ = function() {
 	return (this.test || (this.accumulator >> 12) >= this.pw) ? 0xfff : 0x000;
 };
 
-WaveformGenerator.prototype.outputN___ = function() {
+jsSID.ReSID.WaveformGenerator.prototype.outputN___ = function() {
 	return  ((this.shift_register & 0x400000) >> 11) |
 		((this.shift_register & 0x100000) >> 10) |
 		((this.shift_register & 0x010000) >> 7) |
@@ -324,51 +363,51 @@ WaveformGenerator.prototype.outputN___ = function() {
 };
 
 
-WaveformGenerator.prototype.output__ST = function() {
+jsSID.ReSID.WaveformGenerator.prototype.output__ST = function() {
 	return this.wave__ST[this.output__S_()] << 4;
 };
 
-WaveformGenerator.prototype.output_P_T = function() {
+jsSID.ReSID.WaveformGenerator.prototype.output_P_T = function() {
 	return (this.wave_P_T[this.output___T() >> 1] << 4) & this.output_P__();
 };
 
-WaveformGenerator.prototype.output_PS_ = function() {
+jsSID.ReSID.WaveformGenerator.prototype.output_PS_ = function() {
 	return (this.wave_PS_[this.output__S_()] << 4) & this.output_P__();
 };
 
-WaveformGenerator.prototype.output_PST = function() {
+jsSID.ReSID.WaveformGenerator.prototype.output_PST = function() {
 	return (this.wave_PST[this.output__S_()] << 4) & this.output_P__();
 };
 
-WaveformGenerator.prototype.outputN__T = function() {
+jsSID.ReSID.WaveformGenerator.prototype.outputN__T = function() {
 	return 0;
 };
 
-WaveformGenerator.prototype.outputN_S_ = function() {
+jsSID.ReSID.WaveformGenerator.prototype.outputN_S_ = function() {
 	return 0;
 };
 
-WaveformGenerator.prototype.outputN_ST = function() {
+jsSID.ReSID.WaveformGenerator.prototype.outputN_ST = function() {
 	return 0;
 };
 
-WaveformGenerator.prototype.outputNP__ = function() {
+jsSID.ReSID.WaveformGenerator.prototype.outputNP__ = function() {
 	return 0;
 };
 
-WaveformGenerator.prototype.outputNP_T = function() {
+jsSID.ReSID.WaveformGenerator.prototype.outputNP_T = function() {
 	return 0;
 };
 
-WaveformGenerator.prototype.outputNPS_ = function() {
+jsSID.ReSID.WaveformGenerator.prototype.outputNPS_ = function() {
 	return 0;
 };
 
-WaveformGenerator.prototype.outputNPST = function() {
+jsSID.ReSID.WaveformGenerator.prototype.outputNPST = function() {
 	return 0;
 };
 
-WaveformGenerator.prototype.output = function() {
+jsSID.ReSID.WaveformGenerator.prototype.output = function() {
 	switch(this.waveform) {
 		default:
 		case 0x0:
@@ -406,7 +445,7 @@ WaveformGenerator.prototype.output = function() {
 	}
 };
 
-WaveformGenerator.comboTableCompressed = 
+jsSID.ReSID.WaveformGenerator.comboTableCompressed = 
 	"H4sIAMRzKlICA+1cT2/bNhRXl0OGrViPuxRNvsF6W4F1sYAddhmw4wZsSzRsww7DGgHDZne2ExYd" +
 	"kB22Zp9gFrAPEO0UD3EdFT30GN3qommsIocYqGtrqBu7+be9R1K2JNuSU7VWE/EHU0/UE0lRpMin" +
 	"n/UoSXFiYiJiBmeiJJ4ExFl+nPV/C3AOIIn2T1T7n+e4AJiaSqVE+yf6+Z8S7X+62/+SD5c5ZmZS" +
@@ -447,8 +486,8 @@ WaveformGenerator.comboTableCompressed =
 	"iID/ATiBVooAgAAA";
 
 // expand/split tables
-WaveformGenerator.comboTable = function() {
-	var data = JXG.decompress(WaveformGenerator.comboTableCompressed);
+jsSID.ReSID.WaveformGenerator.comboTable = function() {
+	var data = JXG.decompress(jsSID.ReSID.WaveformGenerator.comboTableCompressed);
 	var stream = Stream(data);
 	var names = [
 		"wave6581__ST", "wave6581_P_T", "wave6581_PS_", "wave6581_PST",
@@ -468,18 +507,18 @@ WaveformGenerator.comboTable = function() {
 
 
 // Voice class
-Voice = function() {
+jsSID.ReSID.Voice = function() {
 	this.muted = false;
 	this.wave_zero = 0;
 	this.voice_DC = 0;
 
-	this.envelope = new EnvelopeGenerator();
-	this.wave = new WaveformGenerator();
+	this.envelope = new jsSID.ReSID.EnvelopeGenerator();
+	this.wave = new jsSID.ReSID.WaveformGenerator();
 	this.set_chip_model(jsSID.chip.model.MOS6581);
 };
 
 
-Voice.prototype.set_chip_model = function(model) {
+jsSID.ReSID.Voice.prototype.set_chip_model = function(model) {
 	this.wave.set_chip_model(model);
 	if (model == jsSID.chip.model.MOS6581) {
 		this.wave_zero = 0x380;
@@ -490,27 +529,27 @@ Voice.prototype.set_chip_model = function(model) {
 	}
 };
 
-Voice.prototype.set_sync_source = function(source) {
+jsSID.ReSID.Voice.prototype.set_sync_source = function(source) {
 	this.wave.set_sync_source(source.wave);
 };
 
-Voice.prototype.writeCONTROL_REG = function(control) {
+jsSID.ReSID.Voice.prototype.writeCONTROL_REG = function(control) {
 	this.wave.writeCONTROL_REG(control);
 	this.envelope.writeCONTROL_REG(control);
 };
 
-Voice.prototype.reset = function() {
+jsSID.ReSID.Voice.prototype.reset = function() {
 	this.wave.reset();
 	this.envelope.reset();
 };
 
-Voice.prototype.mute = function(enable) {
+jsSID.ReSID.Voice.prototype.mute = function(enable) {
 	this.muted = enable;
 };
 
 
 // definitions of Voice methods below here are called for every sample
-Voice.prototype.output = function() {
+jsSID.ReSID.Voice.prototype.output = function() {
 	if (!this.muted) {
 		return (this.wave.output() - this.wave_zero) * this.envelope.output() + this.voice_DC;
 	} else {
@@ -520,19 +559,19 @@ Voice.prototype.output = function() {
 
 
 // ExternalFilter class
-ExternalFilter = function() {
+jsSID.ReSID.ExternalFilter = function() {
 	this.reset();
 	this.enabled = true;
 	this.set_sampling_parameter(15915.6);
 	this.set_chip_model(jsSID.chip.model.MOS6581);
 };
 
-ExternalFilter.prototype.enable_filter = function(enable) {
+jsSID.ReSID.ExternalFilter.prototype.enable_filter = function(enable) {
 	this.enabled = enable;
 };
 
 
-ExternalFilter.prototype.set_sampling_parameter = function(pass_freq) {
+jsSID.ReSID.ExternalFilter.prototype.set_sampling_parameter = function(pass_freq) {
 	this.w0hp = 105;
 	this.w0lp = pass_freq * (2.0 * Math.PI * 1.048576);
 	if (this.w0lp > 104858) {
@@ -541,7 +580,7 @@ ExternalFilter.prototype.set_sampling_parameter = function(pass_freq) {
 
 };
 
-ExternalFilter.prototype.set_chip_model = function(model) {
+jsSID.ReSID.ExternalFilter.prototype.set_chip_model = function(model) {
 	if (model == jsSID.chip.model.MOS6581) {
 		this.mixer_DC = ((((0x800 - 0x380) + 0x800)*0xff*3 - 0xfff*0xff/18) >> 7)*0x0f;
 	} else {
@@ -550,7 +589,7 @@ ExternalFilter.prototype.set_chip_model = function(model) {
 };
 
 
-ExternalFilter.prototype.reset = function() {
+jsSID.ReSID.ExternalFilter.prototype.reset = function() {
 	this.Vlp = 0;
 	this.Vhp = 0;
 	this.Vo = 0;
@@ -560,7 +599,7 @@ ExternalFilter.prototype.reset = function() {
 // definitions of ExternalFilter methods below here are called for every sample
 
 
-ExternalFilter.prototype.clock_one = function(Vi) {
+jsSID.ReSID.ExternalFilter.prototype.clock_one = function(Vi) {
 	if (!this.enabled) {
 		this.Vlp = 0;
 		this.Vhp = 0;
@@ -577,7 +616,7 @@ ExternalFilter.prototype.clock_one = function(Vi) {
 };
 
 
-ExternalFilter.prototype.clock_delta = function(Vi, delta_t) {
+jsSID.ReSID.ExternalFilter.prototype.clock_delta = function(Vi, delta_t) {
 	if (!this.enabled) {
 		this.Vlp = 0;
 		this.Vhp = 0;
@@ -599,15 +638,15 @@ ExternalFilter.prototype.clock_delta = function(Vi, delta_t) {
 };
 
 
-ExternalFilter.prototype.output = function() {
+jsSID.ReSID.ExternalFilter.prototype.output = function() {
 	return this.Vo;
 };
 
 
 // constructor, no.. just a collection of functions for now
-PointPlotter = {};
+jsSID.ReSID.PointPlotter = {};
 
-PointPlotter.interpolate = function(inP, plot, res) {
+jsSID.ReSID.PointPlotter.interpolate = function(inP, plot, res) {
 	var k1, k2;
 	var p0 = 0;
 	var p1 = 1;
@@ -632,13 +671,13 @@ PointPlotter.interpolate = function(inP, plot, res) {
 			k1 = (inP[p2][1] - inP[p0][1]) / (inP[p2][0] - inP[p0][0]);
 			k2 = (inP[p3][1] - inP[p1][1]) / (inP[p3][0] - inP[p1][0]);
 		}
-		PointPlotter.interpolate_segment(inP[p1][0], inP[p1][1], inP[p2][0], inP[p2][1], k1, k2, plot, res);
+		jsSID.ReSID.PointPlotter.interpolate_segment(inP[p1][0], inP[p1][1], inP[p2][0], inP[p2][1], k1, k2, plot, res);
 	}
 
 
 };
 
-PointPlotter.cubic_coefficients = function(x1, y1, x2, y2, k1, k2) {
+jsSID.ReSID.PointPlotter.cubic_coefficients = function(x1, y1, x2, y2, k1, k2) {
 	var dx = x2 - x1;
 	var dy = y2 - y1;
 	var a = ((k1 + k2) - 2 * dy / dx) / (dx * dx);
@@ -648,8 +687,8 @@ PointPlotter.cubic_coefficients = function(x1, y1, x2, y2, k1, k2) {
 	return new Object({ a: a, b: b, c: c, d: d });
 };
 
-PointPlotter.interpolate_brute_force = function(x1, y1, x2, y2, k1, k2, plot, res) {
-	var cc = PointPlotter.cubic_coefficients(x1, y1, x2, y2, k1, k2);
+jsSID.ReSID.PointPlotter.interpolate_brute_force = function(x1, y1, x2, y2, k1, k2, plot, res) {
+	var cc = jsSID.ReSID.PointPlotter.cubic_coefficients(x1, y1, x2, y2, k1, k2);
 	for (var x = x1; x <= x2; x += res) {
 		var y = ((cc.a * x + cc.b) * x + cc.c) * x + cc.d;
 		//plot[x] = (y < 0) ? 0 : y;
@@ -658,8 +697,8 @@ PointPlotter.interpolate_brute_force = function(x1, y1, x2, y2, k1, k2, plot, re
 };
 
 
-PointPlotter.interpolate_forward_difference = function(x1, y1, x2, y2, k1, k2, plot, res) {
-	var cc = PointPlotter.cubic_coefficients(x1, y1, x2, y2, k1, k2);
+jsSID.ReSID.PointPlotter.interpolate_forward_difference = function(x1, y1, x2, y2, k1, k2, plot, res) {
+	var cc = jsSID.ReSID.PointPlotter.cubic_coefficients(x1, y1, x2, y2, k1, k2);
 	var y = ((cc.a * x1 + cc.b) * x1 + cc.c) * x1 + cc.d;
 	var dy = (3 * cc.a * (x1 + res) + 2 * cc.b) * x1 * res + ((cc.a * res + cc.b) * res + cc.c) * res;
 	var d2y = (6 * cc.a * (x1 + res) + 2 * cc.b) * res * res;
@@ -673,16 +712,16 @@ PointPlotter.interpolate_forward_difference = function(x1, y1, x2, y2, k1, k2, p
 	}
 };
 
-PointPlotter.spline_brute_force = false;
+jsSID.ReSID.PointPlotter.spline_brute_force = false;
 
-PointPlotter.interpolate_segment = 
-	PointPlotter.spline_brute_force ?
-	PointPlotter.interpolate_brute_force :
-	PointPlotter.interpolate_forward_difference;
+jsSID.ReSID.PointPlotter.interpolate_segment = 
+	jsSID.ReSID.PointPlotter.spline_brute_force ?
+	jsSID.ReSID.PointPlotter.interpolate_brute_force :
+	jsSID.ReSID.PointPlotter.interpolate_forward_difference;
 
 
 // Filter class
-Filter = function() {
+jsSID.ReSID.Filter = function() {
 	this.fc = 0;
 	this.res = 0;
 	this.filt = 0;
@@ -702,13 +741,13 @@ Filter = function() {
 	this.f0_6581 = new Array(2048);
 	this.f0_8580 = new Array(2048);
 	// Create mappings from FC to cutoff frequency.
-	PointPlotter.interpolate(Filter.f0_points_6581, this.f0_6581, 1.0);
-	PointPlotter.interpolate(Filter.f0_points_8580, this.f0_8580, 1.0);
+	jsSID.ReSID.PointPlotter.interpolate(jsSID.ReSID.Filter.f0_points_6581, this.f0_6581, 1.0);
+	jsSID.ReSID.PointPlotter.interpolate(jsSID.ReSID.Filter.f0_points_8580, this.f0_8580, 1.0);
 
 	this.set_chip_model(jsSID.chip.model.MOS6581);
 };
 
-Filter.f0_points_6581 = new Array(
+jsSID.ReSID.Filter.f0_points_6581 = new Array(
 	[    0,   220 ], [    0,   220 ], [  128,   230 ], [  256,   250 ],
 	[  384,   300 ], [  512,   420 ], [  640,   780 ], [  768,  1600 ],
 	[  832,  2300 ], [  896,  3200 ], [  960,  4300 ], [  992,  5000 ],
@@ -719,7 +758,7 @@ Filter.f0_points_6581 = new Array(
 	[ 1920, 17700 ], [ 2047, 18000 ], [ 2047, 18000 ]
 );
 
-Filter.f0_points_8580 = new Array(
+jsSID.ReSID.Filter.f0_points_8580 = new Array(
 	[    0,     0 ], [    0,     0 ], [  128,   800 ], [  256,  1600 ],
 	[  384,  2500 ], [  512,  3300 ], [  640,  4100 ], [  768,  4800 ],
 	[  896,  5600 ], [ 1024,  6500 ], [ 1152,  7500 ], [ 1280,  8400 ],
@@ -727,26 +766,26 @@ Filter.f0_points_8580 = new Array(
 	[ 1920, 11700 ], [ 2047, 12500 ], [ 2047, 12500 ]
 );
 
-Filter.prototype.enable_filter = function(enable) {
+jsSID.ReSID.Filter.prototype.enable_filter = function(enable) {
 	this.enabled = enable;
 };
 
-Filter.prototype.set_chip_model = function(model) {
+jsSID.ReSID.Filter.prototype.set_chip_model = function(model) {
 	if (model == jsSID.chip.model.MOS6581) {
 		this.mixer_DC = -0xfff*0xff/18 >> 7;
 		this.f0 = this.f0_6581;
-		this.f0_points = Filter.f0_points_6581;
+		this.f0_points = jsSID.ReSID.Filter.f0_points_6581;
 	} else {
 		this.mixer_DC = 0;
 		this.f0 = this.f0_8580;
-		this.f0_points = Filter.f0_points_8580;
+		this.f0_points = jsSID.ReSID.Filter.f0_points_8580;
 	}
 	this.f0_count = this.f0_points.length;
 	this.set_w0();
 	this.set_Q();
 };
 
-Filter.prototype.reset = function() {
+jsSID.ReSID.Filter.prototype.reset = function() {
 	this.fc = 0;
 	this.res = 0;
 	this.filt = 0;
@@ -763,29 +802,29 @@ Filter.prototype.reset = function() {
 	this.set_Q();
 };
 
-Filter.prototype.writeFC_LO = function(fc_lo) {
+jsSID.ReSID.Filter.prototype.writeFC_LO = function(fc_lo) {
 	this.fc = (this.fc & 0x7f8) | (fc_lo & 0x007);
 	this.set_w0();
 };
 
-Filter.prototype.writeFC_HI = function(fc_hi) {
+jsSID.ReSID.Filter.prototype.writeFC_HI = function(fc_hi) {
 	this.fc = ((fc_hi << 3) & 0x7f8) | (this.fc & 0x007);
 	this.set_w0();
 };
 
-Filter.prototype.writeRES_FILT = function(res_filt) {
+jsSID.ReSID.Filter.prototype.writeRES_FILT = function(res_filt) {
 	this.res = (res_filt >> 4) & 0x0f;
 	this.set_Q();
 	this.filt = res_filt & 0x0f;
 };
 
-Filter.prototype.writeMODE_VOL = function(mode_vol) {
+jsSID.ReSID.Filter.prototype.writeMODE_VOL = function(mode_vol) {
 	this.voice3off = mode_vol & 0x80;
 	this.hp_bp_lp = (mode_vol >> 4) & 0x07;
 	this.vol = mode_vol & 0x0f;
 };
 
-Filter.prototype.set_w0 = function() {
+jsSID.ReSID.Filter.prototype.set_w0 = function() {
 	this.w0 = 2 * Math.PI * this.f0[this.fc] * 1.048576;
 
 	// FIXME: move these to be const
@@ -796,7 +835,7 @@ Filter.prototype.set_w0 = function() {
 	this.w0_ceil_dt = this.w0 <= w0_max_dt ? this.w0 : w0_max_dt;
 };
 
-Filter.prototype.set_Q = function() {
+jsSID.ReSID.Filter.prototype.set_Q = function() {
 	this._1024_div_Q = 1024.0 / (0.707 + 1.0 * this.res / 0x0f);
 };
 
@@ -804,7 +843,7 @@ Filter.prototype.set_Q = function() {
 // definitions of Filter methods below here are called for every sample
 
 
-Filter.prototype.clock_one = function(voice1, voice2, voice3, ext_in) {
+jsSID.ReSID.Filter.prototype.clock_one = function(voice1, voice2, voice3, ext_in) {
 	voice1 >>= 7;
 	voice2 >>= 7;
 	if (this.voice3off && !(this.filt & 0x04)) {
@@ -898,7 +937,7 @@ Filter.prototype.clock_one = function(voice1, voice2, voice3, ext_in) {
 	this.Vhp = (this.Vbp * this._1024_div_Q >> 10) - this.Vlp - Vi;
 };
 
-Filter.prototype.clock_delta = function(voice1, voice2, voice3, ext_in, delta_t) {
+jsSID.ReSID.Filter.prototype.clock_delta = function(voice1, voice2, voice3, ext_in, delta_t) {
 	voice1 >>= 7;
 	voice2 >>= 7;
 	if (this.voice3off && !(this.filt & 0x04)) {
@@ -1002,7 +1041,7 @@ Filter.prototype.clock_delta = function(voice1, voice2, voice3, ext_in, delta_t)
 };
 
 
-Filter.prototype.output = function() {
+jsSID.ReSID.Filter.prototype.output = function() {
 	if (!this.enabled) {
 		return (this.Vnf + this.mixer_DC) * this.vol;
 	}
@@ -1038,52 +1077,14 @@ Filter.prototype.output = function() {
 };
 
 
-// Main Object
-function SID (sampleRate, clkRate, method) {
-	sampleRate = sampleRate || 44100;
-	clkRate = clkRate || jsSID.chip.clock.PAL;
-	method = method || SID.sampling_method.SAMPLE_FAST;
-
-	this.bus_value = 0;
-	this.bus_value_ttl = 0;
-	this.ext_in = 0;
-
-	// these are arrays/tables built at runtime
-	this.sample = null;
-	this.fir = null;
-
-	this.voice = new Array(3);
-	for(var i = 0; i < 3; i++) {
-		this.voice[i] = new Voice();
-	}
-	this.filter = new Filter();
-	this.extfilt = new ExternalFilter();
-	this.voice[0].set_sync_source(this.voice[2]);
-	this.voice[1].set_sync_source(this.voice[0]);
-	this.voice[2].set_sync_source(this.voice[1]);
-
-	// FIXME: hardcoded sample method. should be options.
-	this.set_sampling_parameters(clkRate, method, sampleRate);
-}
-//FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter we don't.
-
-SID.const = Object.freeze({
-	FIR_N: 125,
-	FIR_RES_INTERPOLATE: 285,
-	FIR_RES_FAST: 51473,
-	FIR_SHIFT: 15,
-	RINGSIZE: 16384,
-	FIXP_SHIFT: 16,
-	FIXP_MASK: 0xffff
-});
-SID.sampling_method = Object.freeze({
+jsSID.ReSID.sampling_method = Object.freeze({
 	SAMPLE_FAST: {},
 	SAMPLE_INTERPOLATE: {},
 	SAMPLE_RESAMPLE_INTERPOLATE: {},
 	SAMPLE_RESAMPLE_FAST: {}
 });
 
-SID.prototype.set_chip_model = function(model) {
+jsSID.ReSID.prototype.set_chip_model = function(model) {
 	for (var i = 0; i < 3; i++) {
 		this.voice[i].set_chip_model(model);
 	}
@@ -1092,7 +1093,7 @@ SID.prototype.set_chip_model = function(model) {
 	this.extfilt.set_chip_model(model);
 };
 
-SID.prototype.reset = function() {
+jsSID.ReSID.prototype.reset = function() {
 	for (var i = 0; i < 3; i++) {
 		this.voice[i].reset();
 	}
@@ -1102,12 +1103,12 @@ SID.prototype.reset = function() {
 	this.bus_value_ttl = 0;
 };
 
-SID.prototype.input = function(sample) {
+jsSID.ReSID.prototype.input = function(sample) {
 	this.ext_in = (sample << 4) * 3;
 };
 
 
-SID.prototype.output = function(bits) {
+jsSID.ReSID.prototype.output = function(bits) {
 	if(!bits) {
 		bits = 16;
 	}
@@ -1124,7 +1125,7 @@ SID.prototype.output = function(bits) {
 };
 
 
-SID.prototype.read = function(offset) {
+jsSID.ReSID.prototype.read = function(offset) {
 	switch (offset) {
 			// We don't model the potentiometers
 		case 0x19:
@@ -1139,16 +1140,16 @@ SID.prototype.read = function(offset) {
 	}
 };
 
-SID.prototype.poke = function(offset, value) {
+jsSID.ReSID.prototype.poke = function(offset, value) {
 	this.write(offset, value);
 };
 
-SID.prototype.pokeDigi = function(offset, value) {
+jsSID.ReSID.prototype.pokeDigi = function(offset, value) {
 	// not yet implemented
 	return;
 };
 
-SID.prototype.write = function(offset, value) {
+jsSID.ReSID.prototype.write = function(offset, value) {
 	this.bus_value = value;
 	this.bus_value_ttl = 0x2000;
 
@@ -1234,20 +1235,20 @@ SID.prototype.write = function(offset, value) {
 };
 
 
-SID.prototype.mute= function(channel, enable) {
+jsSID.ReSID.prototype.mute= function(channel, enable) {
   if (channel >= 3) return;
   this.voice[channel].mute(enable);
 };
 
-SID.prototype.enable_filter = function(enable) {
+jsSID.ReSID.prototype.enable_filter = function(enable) {
 	this.filter.enable_filter(enable);
 };
 
-SID.prototype.enable_external_filter = function(enable) {
+jsSID.ReSID.prototype.enable_external_filter = function(enable) {
 	this.extfilt.enable_filter(enable);
 };
 
-SID.prototype.I0 = function(x) {
+jsSID.ReSID.prototype.I0 = function(x) {
 	var I0e = 1e-6;			// FIXME: const, used once
 	var sum = 1;
 	var u = 1;
@@ -1264,12 +1265,12 @@ SID.prototype.I0 = function(x) {
 
 
 // Use a clock freqency of 985248Hz for PAL C64, 1022730Hz for NTSC C64.
-SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq, pass_freq, filter_scale) {
+jsSID.ReSID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq, pass_freq, filter_scale) {
 	pass_freq = pass_freq || -1;
 	filter_scale = filter_scale || 0.97;
 
-	if (method == SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE || method == SID.sampling_method.SAMPLE_RESAMPLE_FAST) {
-		if (SID.const.FIR_N * clock_freq / sample_freq >= SID.const.RINGSIZE) {
+	if (method == jsSID.ReSID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE || method == jsSID.ReSID.sampling_method.SAMPLE_RESAMPLE_FAST) {
+		if (jsSID.ReSID.const.FIR_N * clock_freq / sample_freq >= jsSID.ReSID.const.RINGSIZE) {
 			return false;
 		}
 	}
@@ -1288,11 +1289,11 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 	this.clock_frequency = clock_freq;
 	this.mix_freq = sample_freq;
 	this.sampling = method;
-	this.cycles_per_sample = Math.floor(clock_freq / sample_freq * (1 << SID.const.FIXP_SHIFT) + 0.5);
+	this.cycles_per_sample = Math.floor(clock_freq / sample_freq * (1 << jsSID.ReSID.const.FIXP_SHIFT) + 0.5);
 	this.sample_offset = 0;
 	this.sample_prev = 0;
 
-	if (method != SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE && method != SID.sampling_method.SAMPLE_RESAMPLE_FAST) {
+	if (method != jsSID.ReSID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE && method != jsSID.ReSID.sampling_method.SAMPLE_RESAMPLE_FAST) {
 		this.sample = null;
 		this.fir = null;
 		return true;
@@ -1312,7 +1313,7 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 	this.fir_N = Math.floor(N * f_cycles_per_sample) + 1;
 	this.fir_N |= 1;
 
-	var res = (method == SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE) ? SID.const.FIR_RES_INTERPOLATE : SID.const.FIR_RES_FAST;
+	var res = (method == jsSID.ReSID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE) ? jsSID.ReSID.const.FIR_RES_INTERPOLATE : jsSID.ReSID.const.FIR_RES_FAST;
 	var n = Math.ceil(Math.log(res / f_cycles_per_sample) / Math.log(2));
 	this.fir_RES = 1 << n;
 
@@ -1328,7 +1329,7 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 			var temp = jx / (this.fir_N / 2);
 			var Kaiser = Math.abs(temp) <= 1 ? this.I0(beta * Math.sqrt(1 - temp * temp)) / I0beta : 0;
 			var sincwt = Math.abs(wt) >= 1e-6 ? Math.sin(wt) / wt : 1;
-			var val = (1 << SID.const.FIR_SHIFT) * filter_scale * f_samples_per_cycle * wc / Math.PI * sincwt * Kaiser;
+			var val = (1 << jsSID.ReSID.const.FIR_SHIFT) * filter_scale * f_samples_per_cycle * wc / Math.PI * sincwt * Kaiser;
 			// FIXME: was a cast to short, convered to Math.floor. Clean once confirmed
 			this.fir[fir_offset + j] = Math.floor(val + 0.5);
 		}
@@ -1336,22 +1337,22 @@ SID.prototype.set_sampling_parameters = function(clock_freq, method, sample_freq
 
 	// Allocate sample buffer.
 	if (!this.sample) {
-		this.sample = new Array(SID.const.RINGSIZE * 2);
+		this.sample = new Array(jsSID.ReSID.const.RINGSIZE * 2);
 	}
 	// Clear sample buffer.
-	for (var k = 0; k < SID.const.RINGSIZE * 2; k++) {
+	for (var k = 0; k < jsSID.ReSID.const.RINGSIZE * 2; k++) {
 		this.sample[k] = 0;
 	}
 	this.sample_index = 0;
 	return true;
 };
 
-SID.prototype.adjust_sampling_frequency = function(sample_freq) {
+jsSID.ReSID.prototype.adjust_sampling_frequency = function(sample_freq) {
 	// FIXME: casting warning, using floor
-	this.cycles_per_sample = Math.floor(this.clock_frequency/sample_freq*(1 << SID.const.FIXP_SHIFT) + 0.5);
+	this.cycles_per_sample = Math.floor(this.clock_frequency/sample_freq*(1 << jsSID.ReSID.const.FIXP_SHIFT) + 0.5);
 };
 
-SID.prototype.clock_one = function() {
+jsSID.ReSID.prototype.clock_one = function() {
 	var i;
 	if (--this.bus_value_ttl <= 0) {
 		this.bus_value = 0;
@@ -1370,7 +1371,7 @@ SID.prototype.clock_one = function() {
 	this.extfilt.clock_one(this.filter.output());
 };
 
-SID.prototype.clock_delta = function(delta_t) {
+jsSID.ReSID.prototype.clock_delta = function(delta_t) {
 	var i;
 	if (delta_t <= 0) return;
 
@@ -1434,27 +1435,27 @@ SID.prototype.clock_delta = function(delta_t) {
 
 // Below here clocking with audio sampling
 // Main one here call appropriate type
-SID.prototype.clock = function(delta_t, buf, n, interleave, buf_offset) {
+jsSID.ReSID.prototype.clock = function(delta_t, buf, n, interleave, buf_offset) {
 	interleave = interleave || 1;
 	buf_offset = buf_offset || 0;
 	switch (this.sampling) {
 		default:
-		case SID.sampling_method.SAMPLE_FAST:
+		case jsSID.ReSID.sampling_method.SAMPLE_FAST:
 			return this.clock_fast(delta_t, buf, n, interleave, buf_offset);
-		case SID.sampling_method.SAMPLE_INTERPOLATE:
+		case jsSID.ReSID.sampling_method.SAMPLE_INTERPOLATE:
 			return this.clock_interpolate(delta_t, buf, n, interleave, buf_offset);
-		case SID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE:
+		case jsSID.ReSID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE:
 			return this.clock_resample_interpolate(delta_t, buf, n, interleave, buf_offset);
-		case SID.sampling_method.SAMPLE_RESAMPLE_FAST:
+		case jsSID.ReSID.sampling_method.SAMPLE_RESAMPLE_FAST:
 			return this.clock_resample_fast(delta_t, buf, n, interleave, buf_offset);
 	}
 };
 
-SID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
+jsSID.ReSID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
 	var s = 0;
 	for (;;) {
-		var next_sample_offset = this.sample_offset + this.cycles_per_sample + (1 << (SID.const.FIXP_SHIFT - 1));
-		var delta_t_sample = next_sample_offset >> SID.const.FIXP_SHIFT;
+		var next_sample_offset = this.sample_offset + this.cycles_per_sample + (1 << (jsSID.ReSID.const.FIXP_SHIFT - 1));
+		var delta_t_sample = next_sample_offset >> jsSID.ReSID.const.FIXP_SHIFT;
 		if (delta_t_sample > delta_t) {
 			break;
 		}
@@ -1463,7 +1464,7 @@ SID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
 		}
 		this.clock_delta(delta_t_sample);
 		delta_t -= delta_t_sample;
-		this.sample_offset = (next_sample_offset & SID.const.FIXP_MASK) - (1 << (SID.const.FIXP_SHIFT - 1));
+		this.sample_offset = (next_sample_offset & jsSID.ReSID.const.FIXP_MASK) - (1 << (jsSID.ReSID.const.FIXP_SHIFT - 1));
 		// new sample output w/ offset
 		var final_sample = parseFloat(this.output()) / 32768;
 		var buf_idx = s++ * interleave * 2 + buf_offset;
@@ -1471,18 +1472,18 @@ SID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_offset) {
 		buf[buf_idx + 1] = final_sample;
 	}
 	this.clock_delta(delta_t);
-	this.sample_offset -= delta_t << SID.const.FIXP_SHIFT;
+	this.sample_offset -= delta_t << jsSID.ReSID.const.FIXP_SHIFT;
 	delta_t = 0;
 	return s;
 };
 
 
-SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_offset) {
+jsSID.ReSID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_offset) {
 	var s = 0;
 	var i;
 	for (;;) {
 		var next_sample_offset = this.sample_offset + this.cycles_per_sample;
-		var delta_t_sample = next_sample_offset >> SID.const.FIXP_SHIFT;
+		var delta_t_sample = next_sample_offset >> jsSID.ReSID.const.FIXP_SHIFT;
 		if (delta_t_sample > delta_t) {
 			break;
 		}
@@ -1498,11 +1499,11 @@ SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_offs
 		}
 
 		delta_t -= delta_t_sample;
-		this.sample_offset = next_sample_offset & SID.const.FIXP_MASK;
+		this.sample_offset = next_sample_offset & jsSID.ReSID.const.FIXP_MASK;
 
 		var sample_now = this.output();
 		// new sample output w/ offset
-		var final_sample = parseFloat(this.sample_prev + (this.sample_offset * (sample_now - this.sample_prev) >> SID.const.FIXP_SHIFT)) / 32768;
+		var final_sample = parseFloat(this.sample_prev + (this.sample_offset * (sample_now - this.sample_prev) >> jsSID.ReSID.const.FIXP_SHIFT)) / 32768;
 		var buf_idx = s++ * interleave * 2 + buf_offset;
 		buf[buf_idx] = final_sample;
 		buf[buf_idx + 1] = final_sample;
@@ -1516,18 +1517,18 @@ SID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, buf_offs
 		this.sample_prev = this.output();
 		this.clock_one();
 	}
-	this.sample_offset -= delta_t << SID.const.FIXP_SHIFT;
+	this.sample_offset -= delta_t << jsSID.ReSID.const.FIXP_SHIFT;
 	delta_t = 0;
 	return s;
 
 };
 
 
-SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave, buf_offset) {
+jsSID.ReSID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave, buf_offset) {
 	var s = 0;
 	for (;;) {
 		var next_sample_offset = this.sample_offset + this.cycles_per_sample;
-		var delta_t_sample = next_sample_offset >> SID.const.FIXP_SHIFT;
+		var delta_t_sample = next_sample_offset >> jsSID.ReSID.const.FIXP_SHIFT;
 		if (delta_t_sample > delta_t) {
 			break;
 		}
@@ -1537,17 +1538,17 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 		for (var i = 0; i < delta_t_sample; i++) {
 			this.clock_one();
 			this.sample[this.sample_index] = this.output();
-			this.sample[this.sample_index + SID.const.RINGSIZE] = this.sample[this.sample_index];
+			this.sample[this.sample_index + jsSID.ReSID.const.RINGSIZE] = this.sample[this.sample_index];
 			++this.sample_index;
 			this.sample_index &= 0x3fff;
 		}
 		delta_t -= delta_t_sample;
-		this.sample_offset = next_sample_offset & SID.const.FIXP_MASK;
+		this.sample_offset = next_sample_offset & jsSID.ReSID.const.FIXP_MASK;
 
-		var fir_offset = this.sample_offset * this.fir_RES >> SID.const.FIXP_SHIFT;
-		var fir_offset_rmd = this.sample_offset * this.fir_RES & SID.const.FIXP_MASK;
+		var fir_offset = this.sample_offset * this.fir_RES >> jsSID.ReSID.const.FIXP_SHIFT;
+		var fir_offset_rmd = this.sample_offset * this.fir_RES & jsSID.ReSID.const.FIXP_MASK;
 		var fir_start = fir_offset * this.fir_N;
-		var sample_start = this.sample_index - this.fir_N + SID.const.RINGSIZE;
+		var sample_start = this.sample_index - this.fir_N + jsSID.ReSID.const.RINGSIZE;
 
 		var v1 = 0;
 		for (var j = 0; j < this.fir_N; j++) {
@@ -1565,8 +1566,8 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 			v2 += this.sample[sample_start + k] * this.fir[fir_start + k];
 		}
 
-		var v = v1 + (fir_offset_rmd * (v2 - v1) >> SID.const.FIXP_SHIFT);
-		v >>= SID.const.FIR_SHIFT;
+		var v = v1 + (fir_offset_rmd * (v2 - v1) >> jsSID.ReSID.const.FIXP_SHIFT);
+		v >>= jsSID.ReSID.const.FIR_SHIFT;
 
 		// FIXME constant here
 		var half = 1 << 15;
@@ -1585,20 +1586,20 @@ SID.prototype.clock_resample_interpolate = function(delta_t, buf, n, interleave,
 	for (var m = 0; m < delta_t; m++) {
 		this.clock_one();
 		this.sample[this.sample_index] = this.output();
-		this.sample[this.sample_index + SID.const.RINGSIZE] = this.sample[this.sample_index];
+		this.sample[this.sample_index + jsSID.ReSID.const.RINGSIZE] = this.sample[this.sample_index];
 		++this.sample_index;
 		this.sample_index &= 0x3fff;
 	}
-	this.sample_offset -= delta_t << SID.const.FIXP_SHIFT;
+	this.sample_offset -= delta_t << jsSID.ReSID.const.FIXP_SHIFT;
 	delta_t = 0;
 	return s;
 };
 
-SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_offset) {
+jsSID.ReSID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_offset) {
 	var s = 0;
 	for (;;) {
 		var next_sample_offset = this.sample_offset + this.cycles_per_sample;
-		var delta_t_sample = next_sample_offset >> SID.const.FIXP_SHIFT;
+		var delta_t_sample = next_sample_offset >> jsSID.ReSID.const.FIXP_SHIFT;
 		if (delta_t_sample > delta_t) {
 			break;
 		}
@@ -1608,23 +1609,23 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_of
 		for (var i = 0; i < delta_t_sample; i++) {
 			this.clock_one();
 			this.sample[this.sample_index] = this.output();
-			this.sample[this.sample_index + SID.const.RINGSIZE] = this.sample[this.sample_index];
+			this.sample[this.sample_index + jsSID.ReSID.const.RINGSIZE] = this.sample[this.sample_index];
 			++this.sample_index;
 			this.sample_index &= 0x3fff;
 		}
 		delta_t -= delta_t_sample;
-		this.sample_offset = next_sample_offset & SID.const.FIXP_MASK;
+		this.sample_offset = next_sample_offset & jsSID.ReSID.const.FIXP_MASK;
 
-		var fir_offset = this.sample_offset * this.fir_RES >> SID.const.FIXP_SHIFT;
+		var fir_offset = this.sample_offset * this.fir_RES >> jsSID.ReSID.const.FIXP_SHIFT;
 		var fir_start = this.fir_offset * this.fir_N;
-		var sample_start = this.sample_index - this.fir_N + SID.const.RINGSIZE;
+		var sample_start = this.sample_index - this.fir_N + jsSID.ReSID.const.RINGSIZE;
 
 		var v = 0;
 		for (var j = 0; j < this.fir_N; j++) {
 			v += this.sample[sample_start + j] * this.fir[fir_start + j];
 		}
 
-		v >>= SID.const.FIR_SHIFT;
+		v >>= jsSID.ReSID.const.FIR_SHIFT;
 
 		var half = 1 << 15;			// FIXME: const
 		if (v >= half) {
@@ -1642,30 +1643,30 @@ SID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave, buf_of
 	for (var k = 0; k < delta_t; k++) {
 		this.clock_one();
 		this.sample[this.sample_index] = this.output();
-		this.sample[this.sample_index + SID.const.RINGSIZE] = this.sample[this.sample_index];
+		this.sample[this.sample_index + jsSID.ReSID.const.RINGSIZE] = this.sample[this.sample_index];
 		++this.sample_index;
 		this.sample_index &= 0x3fff;
 	}
-	this.sample_offset -= delta_t << SID.const.FIXP_SHIFT;
+	this.sample_offset -= delta_t << jsSID.ReSID.const.FIXP_SHIFT;
 	delta_t = 0;
 	return s;
 };
 
 
 // generate count samples into buffer at offset
-SID.prototype.generateIntoBuffer = function(count, buffer, offset) {
-        //console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
+jsSID.ReSID.prototype.generateIntoBuffer = function(count, buffer, offset) {
+        //console.log("jsSID.ReSID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
         // FIXME: this could be done in one pass. (No?)
         for (var i = offset; i < offset + count * 2; i++) {
                 buffer[i] = 0;
         }
-	var delta = (this.cycles_per_sample * count) >> SID.const.FIXP_SHIFT;
+	var delta = (this.cycles_per_sample * count) >> jsSID.ReSID.const.FIXP_SHIFT;
 	var s = this.clock(delta, buffer, count, 1, offset);
-        //console.log("SID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
+        //console.log("jsSID.ReSID.generateIntoBuffer (delta: " + delta + ", samples clocked: " + s + ")");
 	return s;
 };
 
-SID.prototype.generate = function(samples) {
+jsSID.ReSID.prototype.generate = function(samples) {
         var data = new Array(samples*2);
         this.generateIntoBuffer(samples, data, 0);
         return data;

@@ -54,7 +54,7 @@ SidFile.prototype.infostring = function() {
 function SidPlayer(opts) {
         opts = opts || {};
         this.quality = opts.quality || SIDFactory.quality.good;
-        this.clock = opts.clock || SID.const.CLK_PAL;
+        this.clock = opts.clock || jsSID.chip.clock.PAL;
 
 	this.play_active = true;
 	this.samplesToNextFrame = 0;
