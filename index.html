@@ -186,7 +186,7 @@
     <script src="js/jssid.resid.js"></script>
     <script src="js/jssid.mos6510.js"></script>
     <script src="js/jssid.sidplayer.js"></script>
-    <script src="js/siddmpplayer.js"></script>
+    <script src="js/jssid.dmpplayer.js"></script>
     <script src="js/sidfactory.js"></script>
     <script src="js/sink.js"></script>
     <script>
@@ -225,7 +225,7 @@
       }
 
       function playdmp(file) {
-        sidDmpPlayer = new SidDmpPlayer( { quality: getQuality() });
+        sidDmpPlayer = new jsSID.DMPPlayer( { quality: getQuality() });
         $("#status").text("Loading: " + file);
         $("#play").unbind("click").click(function(){sidDmpPlayer.play()});
         $("#stop").unbind("click").click(function(){sidDmpPlayer.stop()});

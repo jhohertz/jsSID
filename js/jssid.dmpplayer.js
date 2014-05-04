@@ -1,5 +1,5 @@
 
-function SidDmpPlayer(opts) {
+jsSID.DMPPlayer = function(opts) {
 	console.log("player opts", opts);
         opts = opts || {};
         this.quality = opts.quality || SIDFactory.quality.good;
@@ -26,7 +26,7 @@ function SidDmpPlayer(opts) {
 }
 
 // to use sink vs audiomanager
-SidDmpPlayer.prototype.sinkCall = function(buffer, channels) {
+jsSID.DMPPlayer.prototype.sinkCall = function(buffer, channels) {
 	if(this.ready) {
 		var written = this.generateIntoBuffer(buffer.length, buffer, 0);
 		if (written === 0) {
@@ -41,17 +41,17 @@ SidDmpPlayer.prototype.sinkCall = function(buffer, channels) {
 
 };
 
-SidDmpPlayer.prototype.play = function() {
+jsSID.DMPPlayer.prototype.play = function() {
 	this.ready = true;
 };
 
-SidDmpPlayer.prototype.stop = function() {
+jsSID.DMPPlayer.prototype.stop = function() {
 	this.ready = false;
 };
 
 // load the .dmp sid dump file format
 // 60 frames per second of 25 bytes, representing the sid register states
-SidDmpPlayer.prototype.loadFileFromData = function(data) {
+jsSID.DMPPlayer.prototype.loadFileFromData = function(data) {
 	this.stop();
 	var stream = Stream(data);
 
@@ -70,7 +70,7 @@ SidDmpPlayer.prototype.loadFileFromData = function(data) {
 
 // loads the next frame of dump data, setting the sid registers
 // also handle end condition
-SidDmpPlayer.prototype.getNextFrame = function() {
+jsSID.DMPPlayer.prototype.getNextFrame = function() {
 	var nextFrame = null;
 	var count;
 
@@ -106,14 +106,14 @@ SidDmpPlayer.prototype.getNextFrame = function() {
 	}
 };
 	
-SidDmpPlayer.prototype.generate = function (samples) {
+jsSID.DMPPlayer.prototype.generate = function (samples) {
         var data = new Array(samples*2);
         this.generateIntoBuffer(samples, data, 0);
         return data;
 };
 	
 // generator
-SidDmpPlayer.prototype.generateIntoBuffer = function (samples, data, dataOffset) {
+jsSID.DMPPlayer.prototype.generateIntoBuffer = function (samples, data, dataOffset) {
 	if(!this.ready) return [0.0,0.0];
 
 	dataOffset = dataOffset || 0;
