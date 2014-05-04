@@ -178,8 +178,8 @@
     <script src="js/bootstrap.min.js"></script>
 
 
-    <script src="js/stream.js"></script>
     <script src="js/jsxcompressor.js"></script>
+    <script src="js/stream.js"></script>
     <script src="js/jssid.core.js"></script>
     <script src="js/jssid.tinysid.js"></script>
     <script src="js/jssid.fastsid.js"></script>
@@ -187,7 +187,7 @@
     <script src="js/jssid.mos6510.js"></script>
     <script src="js/jssid.sidplayer.js"></script>
     <script src="js/jssid.dmpplayer.js"></script>
-    <script src="js/sidfactory.js"></script>
+    <script src="js/jssid.factory.js"></script>
     <script src="js/sink.js"></script>
     <script>
 
@@ -200,7 +200,7 @@
         if(selectedVal == "") {
           selectedVal = "medium";
         }
-        return SIDFactory.quality[selectedVal];
+        return jsSID.Factory.quality[selectedVal];
       }
 
       function showalert(message) {

@@ -3,7 +3,7 @@
 // constructor
 jsSID.SIDPlayer = function(opts) {
         opts = opts || {};
-        this.quality = opts.quality || SIDFactory.quality.good;
+        this.quality = opts.quality || jsSID.Factory.quality.good;
         this.clock = opts.clock || jsSID.chip.clock.PAL;
 
 	this.play_active = true;
@@ -15,7 +15,7 @@ jsSID.SIDPlayer = function(opts) {
         var that = this;
         this.sink = Sink(function(b, c){that.sinkCall(b,c);});
 
-        this.factory = new SIDFactory();
+        this.factory = new jsSID.Factory();
         this.synth = this.factory.create({
                 quality: this.quality,
                 clock: this.clock,
