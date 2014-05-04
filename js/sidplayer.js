@@ -110,7 +110,7 @@ SidPlayer.prototype.loadFileFromData = function(data) {
 
 	this.sidspeed = this.sidfile.speed ? 100 : 50;		// 0=50hz, 1=100hz
 	this.samplesPerFrame = this.synth.mix_freq / this.sidspeed;
-	this.cpu = new Sid6510(this.sidfile.mem, this.synth);
+	this.cpu = new jsSID.MOS6510(this.sidfile.mem, this.synth);
 
 	// now everything is setup, initialize the sid if needed
 	if (this.sidfile.play_addr === 0) {
