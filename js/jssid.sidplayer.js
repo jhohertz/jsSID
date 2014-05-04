@@ -1,12 +1,38 @@
 
-function SidFile(data) {
+
+// constructor
+jsSID.SIDPlayer = function(opts) {
+        opts = opts || {};
+        this.quality = opts.quality || SIDFactory.quality.good;
+        this.clock = opts.clock || jsSID.chip.clock.PAL;
+
+	this.play_active = true;
+	this.samplesToNextFrame = 0;
+	// state signaled to audio manager
+	this.ready = false;
+	this.finished = false;
+
+        var that = this;
+        this.sink = Sink(function(b, c){that.sinkCall(b,c);});
+
+        this.factory = new SIDFactory();
+        this.synth = this.factory.create({
+                quality: this.quality,
+                clock: this.clock,
+                mixrate: this.sink.sampleRate
+        });
+
+}
+
+
+jsSID.SIDPlayer.SIDFile = function(data) {
 	this.loaded = false;
 	if(data) {
 		this.loadFileFromData(data);
 	}
 }
 
-SidFile.prototype.loadFileFromData = function(data) {
+jsSID.SIDPlayer.SIDFile.prototype.loadFileFromData = function(data) {
         var stream = Stream(data);
         stream.seek(0x07);
         this.data_offset = stream.readInt8();            // 0x07
@@ -44,42 +70,18 @@ SidFile.prototype.loadFileFromData = function(data) {
 
 };
 
-SidFile.prototype.infostring = function() {
+jsSID.SIDPlayer.SIDFile.prototype.infostring = function() {
 	var ret = "";
         ret += this.name + " ( " + this.author + " / &copy; " + this.copyright + " )";
 	return ret;
 }
 
-// constructor
-function SidPlayer(opts) {
-        opts = opts || {};
-        this.quality = opts.quality || SIDFactory.quality.good;
-        this.clock = opts.clock || jsSID.chip.clock.PAL;
-
-	this.play_active = true;
-	this.samplesToNextFrame = 0;
-	// state signaled to audio manager
-	this.ready = false;
-	this.finished = false;
-
-        var that = this;
-        this.sink = Sink(function(b, c){that.sinkCall(b,c);});
-
-        this.factory = new SIDFactory();
-        this.synth = this.factory.create({
-                quality: this.quality,
-                clock: this.clock,
-                mixrate: this.sink.sampleRate
-        });
-
-}
-
-SidPlayer.prototype.getSidFile = function() {
+jsSID.SIDPlayer.prototype.getSidFile = function() {
 	return this.sidfile;
 };
 
 // to use sink vs audiomanager
-SidPlayer.prototype.sinkCall = function(buffer, channels) {
+jsSID.SIDPlayer.prototype.sinkCall = function(buffer, channels) {
         if(this.ready) {
                 var written = this.generateIntoBuffer(buffer.length, buffer, 0);
                 if (written === 0) {
@@ -95,18 +97,18 @@ SidPlayer.prototype.sinkCall = function(buffer, channels) {
 };
 
 
-SidPlayer.prototype.play = function() {
+jsSID.SIDPlayer.prototype.play = function() {
         this.ready = true;
 };
 
-SidPlayer.prototype.stop = function() {
+jsSID.SIDPlayer.prototype.stop = function() {
         this.ready = false;
 };
 
 // load the .sid file into a 64k memory image array
-SidPlayer.prototype.loadFileFromData = function(data) {
+jsSID.SIDPlayer.prototype.loadFileFromData = function(data) {
 	this.stop();
-	this.sidfile = new SidFile(data);
+	this.sidfile = new jsSID.SIDPlayer.SIDFile(data);
 
 	this.sidspeed = this.sidfile.speed ? 100 : 50;		// 0=50hz, 1=100hz
 	this.samplesPerFrame = this.synth.mix_freq / this.sidspeed;
@@ -130,7 +132,7 @@ SidPlayer.prototype.loadFileFromData = function(data) {
 
 };
 
-SidPlayer.prototype.getNextFrame = function() {
+jsSID.SIDPlayer.prototype.getNextFrame = function() {
 	if (this.play_active) {
 		this.cpu.cpuJSR(this.sidfile.play_addr, 0);
 		// check if CIA timing is used, and adjust
@@ -157,14 +159,14 @@ SidPlayer.prototype.getNextFrame = function() {
 	}
 };
 	
-SidPlayer.prototype.generate = function(samples) {
+jsSID.SIDPlayer.prototype.generate = function(samples) {
 	var data = new Array(samples*2);
 	this.generateIntoBuffer(samples, data, 0);
 	return data;
 };
 	
 // generator
-SidPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffset) {
+jsSID.SIDPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffset) {
 	if(!this.ready) return [0.0,0.0];
 	dataOffset = dataOffset || 0;
 	var dataOffsetStart = dataOffset;

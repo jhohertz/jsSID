@@ -185,7 +185,7 @@
     <script src="js/jssid.fastsid.js"></script>
     <script src="js/jssid.resid.js"></script>
     <script src="js/jssid.mos6510.js"></script>
-    <script src="js/sidplayer.js"></script>
+    <script src="js/jssid.sidplayer.js"></script>
     <script src="js/siddmpplayer.js"></script>
     <script src="js/sidfactory.js"></script>
     <script src="js/sink.js"></script>
@@ -213,7 +213,7 @@
 
       var sidPlayer;
       function playsid(file) {
-        sidPlayer = new SidPlayer({ quality: getQuality() });
+        sidPlayer = new jsSID.SIDPlayer({ quality: getQuality() });
         $("#status").text("Loading: " + file);
         $("#play").unbind("click").click(function(){sidPlayer.play()});
         $("#stop").unbind("click").click(function(){sidPlayer.stop()});
