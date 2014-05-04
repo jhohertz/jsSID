@@ -1,5 +1,5 @@
 
-function FastSID(opts) {
+jsSID.FastSID = function(opts) {
 	opts = opts || {};
 	this.d = opts.state || new Array(32);		// data registers
 	// FIXME: expose this
@@ -11,20 +11,19 @@ function FastSID(opts) {
 	this.filterRefFreq = 44100;
 	this.clock_rate = opts.clock || jsSID.chip.clock.PAL;
 
-
 	this.cycles_per_sample = Math.floor(this.clock_rate/this.mix_freq * (1 << 16) + 0.5);
 
 	this.init(this.mix_freq, this.clock_rate);
 }
 
-FastSID.adrtable = [
+jsSID.FastSID.adrtable = [
 	1, 4, 8, 12, 19, 28, 34, 40, 50, 125, 250, 400, 500, 1500, 2500, 4000
 ];
-FastSID.exptable = [
+jsSID.FastSID.exptable = [
 	0x30000000, 0x1c000000, 0x0e000000, 0x08000000, 0x04000000, 0x00000000
 ];
 
-FastSID.comboTableCompressed =
+jsSID.FastSID.comboTableCompressed =
         "H4sIABbCO1ICA+2bTW/jRBjHXe2BG/sFVpRvwBEkoMk34MgBQX3jgKBGICWo3nTQCvXAYT8BJIg7" +
         "MQfUSPU2g1aIGwkHVCNC4qqHRtpuErShCc1ml2debM9MnLhZ72Itnr86Ho/nxfNij5/+ZmIYWWrj" +
         "WpZ3fwGUafONa5m1/0XQdZChxz9X43+D6yXQJkiPv37/9fg/t+O/kZTgNUVvcG1tFQp7ID3++v3X" +
@@ -51,7 +50,7 @@ FastSID.comboTableCompressed =
         "CB2AO0R3jiSmiQWfJPLo0+ETh3x/aCA8wqPRBI+ms+n80RyOIzyBbnzg+2g4uO/f8zE6wxjy9+gu" +
         "PbnEK4PQRJWDNZ7/WP8CCUeSiwBCAAA=";
 
-FastSID.const = Object.freeze({
+jsSID.FastSID.const = Object.freeze({
 	NSEED:    0x7ffff8,
 	ATTACK:   0,
 	DECAY:    1,
@@ -61,13 +60,13 @@ FastSID.const = Object.freeze({
 	NOISETABLESIZE: 256
 }); 
 
-FastSID.prototype.init = function (speed, cycles_per_sec) {
+jsSID.FastSID.prototype.init = function (speed, cycles_per_sec) {
 	this.speed1 = Math.floor((cycles_per_sec << 8) / speed);
 	this.adrs = new Array(16);
 	this.sz = new Array(16);
 	var i;
 	for (i = 0; i < 16; i++) {
-		this.adrs[i] = 500 * 8 * this.speed1 / FastSID.adrtable[i];
+		this.adrs[i] = 500 * 8 * this.speed1 / jsSID.FastSID.adrtable[i];
 		this.sz[i] = 0x8888888 * i;
 	}
 	this.update = 1;
@@ -75,7 +74,7 @@ FastSID.prototype.init = function (speed, cycles_per_sec) {
 	this.init_filter(speed);
 	this.v = new Array(3);
 	for (i = 0; i < 3; i++) {
-		this.v[i] = { wtr: new Array(2), adsrm: FastSID.const.IDLE };
+		this.v[i] = { wtr: new Array(2), adsrm: jsSID.FastSID.const.IDLE };
 	}
 	this.setup_sid();
 	this.setup_wavetables();
@@ -86,7 +85,7 @@ FastSID.prototype.init = function (speed, cycles_per_sec) {
 		this.v[i].nr = i;
 		this.v[i].d_o = i * 7;
 		//this.v[i].s = psid;
-		this.v[i].rv = FastSID.const.NSEED;
+		this.v[i].rv = jsSID.FastSID.const.NSEED;
 		this.v[i].filtLow = 0;
 		this.v[i].filtRef = 0;
 		this.v[i].filtIO = 0;
@@ -94,10 +93,10 @@ FastSID.prototype.init = function (speed, cycles_per_sec) {
 		this.setup_voice(this.v[i]);
 	}
 
-	this.noiseMSB = new Array(FastSID.const.NOISETABLESIZE);
-	this.noiseMID = new Array(FastSID.const.NOISETABLESIZE);
-	this.noiseLSB = new Array(FastSID.const.NOISETABLESIZE);
-	for (i = 0; i < FastSID.const.NOISETABLESIZE; i++) {
+	this.noiseMSB = new Array(jsSID.FastSID.const.NOISETABLESIZE);
+	this.noiseMID = new Array(jsSID.FastSID.const.NOISETABLESIZE);
+	this.noiseLSB = new Array(jsSID.FastSID.const.NOISETABLESIZE);
+	for (i = 0; i < jsSID.FastSID.const.NOISETABLESIZE; i++) {
 		this.noiseLSB[i] = ((((i >> 5) & 0x04) | ((i >> 3) & 0x02) | ((i >> 2) & 0x01))) & 0xFF;
 		this.noiseMID[i] = ((((i >> 1) & 0x10) | ((i << 0) & 0x08))) & 0xFF;
 		this.noiseMSB[i] = ((((i << 6) & 0x80) | ((i << 2) & 0x40) | ((i << 5) & 0x20))) & 0xFF;
@@ -110,7 +109,7 @@ FastSID.prototype.init = function (speed, cycles_per_sec) {
 
 };
 
-FastSID.prototype.init_filter = function (freq) {
+jsSID.FastSID.prototype.init_filter = function (freq) {
 	var uk;
 	var rk;
 	var si;
@@ -177,7 +176,7 @@ FastSID.prototype.init_filter = function (freq) {
 };
 
 
-FastSID.prototype.setup_sid = function() {
+jsSID.FastSID.prototype.setup_sid = function() {
 	if (!this.update) {
 		return;
 	}
@@ -216,7 +215,7 @@ FastSID.prototype.setup_sid = function() {
 
 };
 
-FastSID.prototype.setup_wavetables = function() {
+jsSID.FastSID.prototype.setup_wavetables = function() {
 	this.wavetable00 = new Array(0, 0);
 	this.wavetable10 = new Array(4096);
 	this.wavetable20 = new Array(4096);
@@ -258,7 +257,7 @@ FastSID.prototype.setup_wavetables = function() {
 
 };
 
-FastSID.prototype.setup_voice = function(pv) {
+jsSID.FastSID.prototype.setup_voice = function(pv) {
 	if (!pv.update) {
 		return;
 	}
@@ -270,7 +269,7 @@ FastSID.prototype.setup_voice = function(pv) {
 	pv.fs = this.speed1 * (this.d[pv.d_o + 0] + this.d[pv.d_o + 1] * 0x100);
 	if (this.d[pv.d_o + 4] & 0x08) {
 		pv.f = pv.fs = 0;
-		pv.rv = FastSID.const.NSEED;
+		pv.rv = jsSID.FastSID.const.NSEED;
 	}
 	pv.noise = 0;
 	pv.wtl = 20;
@@ -343,19 +342,19 @@ FastSID.prototype.setup_voice = function(pv) {
 	}
 
 	switch (pv.adsrm) {
-		case FastSID.const.ATTACK:
-		case FastSID.const.DECAY:
-		case FastSID.const.SUSTAIN:
+		case jsSID.FastSID.const.ATTACK:
+		case jsSID.FastSID.const.DECAY:
+		case jsSID.FastSID.const.SUSTAIN:
 			if (this.d[pv.d_o + 4] & 0x01) {
-				this.set_adsr(pv, (pv.gateflip ? FastSID.const.ATTACK : pv.adsrm));
+				this.set_adsr(pv, (pv.gateflip ? jsSID.FastSID.const.ATTACK : pv.adsrm));
 			} else {
-				this.set_adsr(pv, FastSID.const.RELEASE);
+				this.set_adsr(pv, jsSID.FastSID.const.RELEASE);
 			}
 			break;
-		case FastSID.const.RELEASE:
-		case FastSID.const.IDLE:
+		case jsSID.FastSID.const.RELEASE:
+		case jsSID.FastSID.const.IDLE:
 			if (this.d[pv.d_o + 4] & 0x01) {
-				this.set_adsr(pv, FastSID.const.ATTACK);
+				this.set_adsr(pv, jsSID.FastSID.const.ATTACK);
 			} else {
 				this.set_adsr(pv, pv.adsrm);
 			}
@@ -365,44 +364,44 @@ FastSID.prototype.setup_voice = function(pv) {
 	pv.gateflip = 0;
 };
 
-FastSID.prototype.set_adsr = function(pv, fm) {
+jsSID.FastSID.prototype.set_adsr = function(pv, fm) {
 	var i;
 	//console.log("setadsr: ", fm);
 	switch (fm) {
-		case FastSID.const.ATTACK:
+		case jsSID.FastSID.const.ATTACK:
 			pv.adsrs = this.adrs[pv.attack];
 			pv.adsrz = 0;
 			break;
-		case FastSID.const.DECAY:
+		case jsSID.FastSID.const.DECAY:
 			if ((pv.adsr >>> 0) <= this.sz[pv.sustain]) {
-				this.set_adsr(pv, FastSID.const.SUSTAIN);
+				this.set_adsr(pv, jsSID.FastSID.const.SUSTAIN);
 				return;
 			}
-			for (i = 0; (pv.adsr >>> 0) < FastSID.exptable[i]; i++) {}
+			for (i = 0; (pv.adsr >>> 0) < jsSID.FastSID.exptable[i]; i++) {}
 			pv.adsrs = -this.adrs[pv.decay] >> i;
 			pv.adsrz = this.sz[pv.sustain];
-			if (FastSID.exptable[i] > pv.adsrz) {
-				pv.adsrz = FastSID.exptable[i];
+			if (jsSID.FastSID.exptable[i] > pv.adsrz) {
+				pv.adsrz = jsSID.FastSID.exptable[i];
 			}
 			break;
-		case FastSID.const.SUSTAIN:
+		case jsSID.FastSID.const.SUSTAIN:
 			if ((pv.adsr >>> 0) > this.sz[pv.sustain]) {
-				this.set_adsr(pv, FastSID.const.DECAY);
+				this.set_adsr(pv, jsSID.FastSID.const.DECAY);
 				return;
 			}
 			pv.adsrs = 0;
 			pv.adsrz = 0;
 			break;
-		case FastSID.const.RELEASE:
+		case jsSID.FastSID.const.RELEASE:
 			if (!pv.adsr) {
-				this.set_adsr(pv, FastSID.const.IDLE);
+				this.set_adsr(pv, jsSID.FastSID.const.IDLE);
 				return;
 			}
-			for (i = 0; (pv.adsr >>> 0) < FastSID.exptable[i]; i++) {}
+			for (i = 0; (pv.adsr >>> 0) < jsSID.FastSID.exptable[i]; i++) {}
 			pv.adsrs = -this.adrs[pv.release] >> i;
-			pv.adsrz = FastSID.exptable[i];
+			pv.adsrz = jsSID.FastSID.exptable[i];
 			break;
-		case FastSID.const.IDLE:
+		case jsSID.FastSID.const.IDLE:
 			pv.adsrs = 0;
 			pv.adsrz = 0;
 			break;
@@ -411,14 +410,14 @@ FastSID.prototype.set_adsr = function(pv, fm) {
 
 };
 
-FastSID.prototype.trigger_adsr = function(pv) {
+jsSID.FastSID.prototype.trigger_adsr = function(pv) {
 	switch (pv.adsrm) {
-		case FastSID.const.ATTACK:
+		case jsSID.FastSID.const.ATTACK:
 			pv.adsr = 0x7fffffff;
-			this.set_adsr(pv, FastSID.const.DECAY);
+			this.set_adsr(pv, jsSID.FastSID.const.DECAY);
 			break;
-		case FastSID.const.DECAY:
-		case FastSID.const.RELEASE:
+		case jsSID.FastSID.const.DECAY:
+		case jsSID.FastSID.const.RELEASE:
 			if ((pv.adsr >>> 0) >= 0x80000000) {
 				pv.adsr = 0;
 			}
@@ -427,11 +426,11 @@ FastSID.prototype.trigger_adsr = function(pv) {
 	}
 };
 
-FastSID.prototype.poke = function(addr, byte) {
+jsSID.FastSID.prototype.poke = function(addr, byte) {
 	this.store(addr, byte);
 };
 
-FastSID.prototype.store = function(addr, byte) {
+jsSID.FastSID.prototype.store = function(addr, byte) {
 	switch (addr) {
 		case 4:
 			if ((this.d[addr] ^ byte) & 1) {
@@ -482,7 +481,7 @@ FastSID.prototype.store = function(addr, byte) {
 };
 
 // FIXME: reading disabled for now, need to untangle some things from vice to use this
-//FastSID.prototype.read = function (addr) {
+//jsSID.FastSID.prototype.read = function (addr) {
 //	var ret;
 //	var ffix;
 //	var rvstore;
@@ -522,7 +521,7 @@ FastSID.prototype.store = function(addr, byte) {
 //	return ret;
 //};
 
-FastSID.prototype.reset = function (cpu_clk) {
+jsSID.FastSID.prototype.reset = function (cpu_clk) {
 	for (var addr = 0; addr < 32; addr++) {
 		this.fastsid_store(addr, 0);
 	}
@@ -531,11 +530,11 @@ FastSID.prototype.reset = function (cpu_clk) {
 	//this.maincpu_clk = cpu_clk;
 };
 
-//FastSID.prototype.prevent_clk_overflow = function (sub) {
+//jsSID.FastSID.prototype.prevent_clk_overflow = function (sub) {
 //	this.laststoreclk -= sub;
 //};
 
-FastSID.prototype.do_filter = function (pVoice) {
+jsSID.FastSID.prototype.do_filter = function (pVoice) {
 
 	if (!pVoice.filter) {
 		return;
@@ -600,7 +599,7 @@ FastSID.prototype.do_filter = function (pVoice) {
 
 };
 
-FastSID.prototype.do_osc = function (pv) {
+jsSID.FastSID.prototype.do_osc = function (pv) {
     if (pv.noise) {
         return (this.NVALUE(this.NSHIFT(pv.rv, pv.f >>> 28))) << 7;
     }
@@ -609,7 +608,7 @@ FastSID.prototype.do_osc = function (pv) {
     return pv.wt[wtix] ^ pv.wtr[pv.vprev.f >>> 31];
 };
 
-FastSID.prototype.calculate_single_sample = function () {
+jsSID.FastSID.prototype.calculate_single_sample = function () {
 	var o0, o1, o2;
 	var dosync1, dosync2;
 	var v0, v1, v2;
@@ -700,7 +699,7 @@ FastSID.prototype.calculate_single_sample = function () {
 	return (final_sample);
 };
 
-FastSID.prototype.calculate_samples = function (pbuf, nr, interleave, delta_t, offset) {
+jsSID.FastSID.prototype.calculate_samples = function (pbuf, nr, interleave, delta_t, offset) {
     var i;
     for (i = 0; i < nr ; i++) {
 	var idx = i * interleave * 2 + offset;
@@ -711,14 +710,14 @@ FastSID.prototype.calculate_samples = function (pbuf, nr, interleave, delta_t, o
 };
 
 
-FastSID.prototype.NSHIFT = function(v, n) {
+jsSID.FastSID.prototype.NSHIFT = function(v, n) {
 		//((v << n) | (((v >> (23 - n)) ^ (v >> (18 - n))) & ((1 << n) - 1))) >>> 0
 	return (
 		(v << n) | (((v >>> (23 - n)) ^ (v >>> (18 - n))) & ((1 << n) - 1))
 	);
 };
 
-FastSID.prototype.NVALUE = function(v) {
+jsSID.FastSID.prototype.NVALUE = function(v) {
 	return (
 		(this.noiseLSB[v & 0xff] | this.noiseMID[(v >>> 8) & 0xff] | this.noiseMSB[(v >>> 16) & 0xff])
 	);
@@ -726,7 +725,7 @@ FastSID.prototype.NVALUE = function(v) {
 };
 
 
-FastSID.prototype.generateIntoBuffer = function(count, buffer, offset) {
+jsSID.FastSID.prototype.generateIntoBuffer = function(count, buffer, offset) {
         //console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
         // FIXME: this could be done in one pass. (No?)
         for (var i = offset; i < offset + count * 2; i++) {
@@ -739,7 +738,7 @@ FastSID.prototype.generateIntoBuffer = function(count, buffer, offset) {
         return s;
 };
 
-FastSID.prototype.generate = function(samples) {
+jsSID.FastSID.prototype.generate = function(samples) {
         var data = new Array(samples*2);
         this.generateIntoBuffer(samples, data, 0);
         return data;
