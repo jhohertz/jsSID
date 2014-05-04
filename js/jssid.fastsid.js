@@ -1,18 +1,19 @@
 
 jsSID.FastSID = function(opts) {
 	opts = opts || {};
-	this.d = opts.state || new Array(32);		// data registers
+	this.sid_model = opts.model || jsSID.chip.model.MOS6581;
+	this.clock_rate = opts.clock || jsSID.chip.clock.PAL;
+
 	// FIXME: expose this
 	this.emulate_filter = true;
 	//this.emulate_filter = false;
-	this.sid_model = opts.model || jsSID.chip.model.MOS6581;
+
 	// FIXME: this is ugly
 	this.mix_freq = opts.sampleRate || 44100;
 	this.filterRefFreq = 44100;
-	this.clock_rate = opts.clock || jsSID.chip.clock.PAL;
 
+	this.d = opts.state || new Array(32);		// data registers
 	this.cycles_per_sample = Math.floor(this.clock_rate/this.mix_freq * (1 << 16) + 0.5);
-
 	this.init(this.mix_freq, this.clock_rate);
 }
 

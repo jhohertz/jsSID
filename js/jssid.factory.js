@@ -20,11 +20,11 @@ jsSID.Factory.prototype.create = function(f_opts) {
         var f_sampleRate = f_opts.mixrate || 44100;
         var f_newsid;
         if(f_quality == jsSID.Factory.quality.low) {
-                f_newsid = new jsSID.TinySID(f_sampleRate);
+                f_newsid = new jsSID.TinySID({ sampleRate: f_sampleRate });
         } else if (f_quality == jsSID.Factory.quality.medium) {
                 f_newsid = new jsSID.FastSID({ sampleRate: f_sampleRate, clock: f_clock });
         } else {
-                f_newsid = new jsSID.ReSID(f_sampleRate, f_clock, f_quality[1]);
+                f_newsid = new jsSID.ReSID({ sampleRate: f_sampleRate, clock: f_clock, method: f_quality[1] });
         }
         return f_newsid;
 };

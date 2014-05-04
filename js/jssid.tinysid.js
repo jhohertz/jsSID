@@ -1,11 +1,10 @@
 
 // Main TinySID Object
-//function TinySID(mix_frequency, memory) {
-jsSID.TinySID = function(mix_frequency, memory) {
+jsSID.TinySID = function(opts) {
+        opts = opts || {};
+	this.mix_freq = opts.sampleRate || 44100;	
+	this.mem = opts.memory || null;
 
-	this.mem = memory || null;
-
-	this.mix_freq = mix_frequency;	
 	this.freq_mul = Math.floor(15872000 / this.mix_freq);
 	this.filt_mul = Math.floor(jsSID.TinySID.pFloat.convertFromFloat(21.5332031) / this.mix_freq);
 

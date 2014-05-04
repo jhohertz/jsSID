@@ -1,9 +1,11 @@
 
 // Main Object
-jsSID.ReSID = function(sampleRate, clkRate, method) {
-	sampleRate = sampleRate || 44100;
-	clkRate = clkRate || jsSID.chip.clock.PAL;
-	method = method || jsSID.ReSID.sampling_method.SAMPLE_FAST;
+jsSID.ReSID = function(opts) {
+        opts = opts || {};
+        this.sid_model = opts.model || jsSID.chip.model.MOS6581;
+        var clkRate = opts.clock || jsSID.chip.clock.PAL;
+	var sampleRate = opts.sampleRate || 44100;
+	var method = opts.method || jsSID.ReSID.sampling_method.SAMPLE_FAST;
 
 	this.bus_value = 0;
 	this.bus_value_ttl = 0;
