@@ -225,7 +225,7 @@ jsSID.FastSID.prototype.setup_wavetables = function() {
 	this.wavetable60 = new Array(8192);
 	this.wavetable70 = new Array(8192);
 
-        var data = JXG.decompress(WaveformGenerator.comboTableCompressed);
+        var data = JXG.decompress(jsSID.FastSID.comboTableCompressed);
         var stream = Stream(data);
 	var combo = new Array(4*4096+512);
 	var i;
