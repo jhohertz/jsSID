@@ -20,7 +20,7 @@ SIDFactory.prototype.create = function(f_opts) {
         var f_sampleRate = f_opts.mixrate || 44100;
         var f_newsid;
         if(f_quality == SIDFactory.quality.low) {
-                f_newsid = new SidSynth(f_sampleRate);
+                f_newsid = new jsSID.TinySID(f_sampleRate);
         } else if (f_quality == SIDFactory.quality.medium) {
                 f_newsid = new FastSID({ sampleRate: f_sampleRate, clock: f_clock });
         } else {
