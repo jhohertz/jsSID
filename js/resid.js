@@ -169,12 +169,12 @@ EnvelopeGenerator.prototype.set_exponential_counter = function() {
 // Waveform object
 function WaveformGenerator() {
 	this.sync_source = this;
-	this.set_chip_model(SID.chip_model.MOS6581);
+	this.set_chip_model(jsSID.chip.model.MOS6581);
 	this.reset();
 }
 
 WaveformGenerator.prototype.set_chip_model = function(model) {
-	if (model == SID.chip_model.MOS6581) {
+	if (model == jsSID.chip.model.MOS6581) {
 		this.wave__ST = WaveformGenerator.comboTable.wave6581__ST;
 		this.wave_P_T = WaveformGenerator.comboTable.wave6581_P_T;
 		this.wave_PS_ = WaveformGenerator.comboTable.wave6581_PS_;
@@ -475,13 +475,13 @@ Voice = function() {
 
 	this.envelope = new EnvelopeGenerator();
 	this.wave = new WaveformGenerator();
-	this.set_chip_model(SID.chip_model.MOS6581);
+	this.set_chip_model(jsSID.chip.model.MOS6581);
 };
 
 
 Voice.prototype.set_chip_model = function(model) {
 	this.wave.set_chip_model(model);
-	if (model == SID.chip_model.MOS6581) {
+	if (model == jsSID.chip.model.MOS6581) {
 		this.wave_zero = 0x380;
 		this.voice_DC = 0x800*0xff;
 	} else {
@@ -524,7 +524,7 @@ ExternalFilter = function() {
 	this.reset();
 	this.enabled = true;
 	this.set_sampling_parameter(15915.6);
-	this.set_chip_model(SID.chip_model.MOS6581);
+	this.set_chip_model(jsSID.chip.model.MOS6581);
 };
 
 ExternalFilter.prototype.enable_filter = function(enable) {
@@ -542,7 +542,7 @@ ExternalFilter.prototype.set_sampling_parameter = function(pass_freq) {
 };
 
 ExternalFilter.prototype.set_chip_model = function(model) {
-	if (model == SID.chip_model.MOS6581) {
+	if (model == jsSID.chip.model.MOS6581) {
 		this.mixer_DC = ((((0x800 - 0x380) + 0x800)*0xff*3 - 0xfff*0xff/18) >> 7)*0x0f;
 	} else {
 		this.mixer_DC = 0;
@@ -705,7 +705,7 @@ Filter = function() {
 	PointPlotter.interpolate(Filter.f0_points_6581, this.f0_6581, 1.0);
 	PointPlotter.interpolate(Filter.f0_points_8580, this.f0_8580, 1.0);
 
-	this.set_chip_model(SID.chip_model.MOS6581);
+	this.set_chip_model(jsSID.chip.model.MOS6581);
 };
 
 Filter.f0_points_6581 = new Array(
@@ -732,7 +732,7 @@ Filter.prototype.enable_filter = function(enable) {
 };
 
 Filter.prototype.set_chip_model = function(model) {
-	if (model == SID.chip_model.MOS6581) {
+	if (model == jsSID.chip.model.MOS6581) {
 		this.mixer_DC = -0xfff*0xff/18 >> 7;
 		this.f0 = this.f0_6581;
 		this.f0_points = Filter.f0_points_6581;
@@ -1041,7 +1041,7 @@ Filter.prototype.output = function() {
 // Main Object
 function SID (sampleRate, clkRate, method) {
 	sampleRate = sampleRate || 44100;
-	clkRate = clkRate || SID.const.CLK_PAL;
+	clkRate = clkRate || jsSID.chip.clock.PAL;
 	method = method || SID.sampling_method.SAMPLE_FAST;
 
 	this.bus_value = 0;
@@ -1067,7 +1067,6 @@ function SID (sampleRate, clkRate, method) {
 }
 //FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter we don't.
 
-SID.chip_model = Object.freeze({ MOS6581: 0, MOS8580: 1 });
 SID.const = Object.freeze({
 	FIR_N: 125,
 	FIR_RES_INTERPOLATE: 285,
@@ -1075,9 +1074,7 @@ SID.const = Object.freeze({
 	FIR_SHIFT: 15,
 	RINGSIZE: 16384,
 	FIXP_SHIFT: 16,
-	FIXP_MASK: 0xffff,
-	CLK_PAL: 985248,
-	CLK_NTSC: 1022730
+	FIXP_MASK: 0xffff
 });
 SID.sampling_method = Object.freeze({
 	SAMPLE_FAST: {},

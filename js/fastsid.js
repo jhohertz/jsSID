@@ -5,11 +5,11 @@ function FastSID(opts) {
 	// FIXME: expose this
 	this.emulate_filter = true;
 	//this.emulate_filter = false;
-	this.sid_model = opts.model || FastSID.chip_model.MOS6581;
+	this.sid_model = opts.model || jsSID.chip.model.MOS6581;
 	// FIXME: this is ugly
 	this.mix_freq = opts.sampleRate || 44100;
 	this.filterRefFreq = 44100;
-	this.clock_rate = opts.clock || FastSID.const.CLK_PAL;
+	this.clock_rate = opts.clock || jsSID.chip.clock.PAL;
 
 
 	this.cycles_per_sample = Math.floor(this.clock_rate/this.mix_freq * (1 << 16) + 0.5);
@@ -17,7 +17,6 @@ function FastSID(opts) {
 	this.init(this.mix_freq, this.clock_rate);
 }
 
-FastSID.chip_model = Object.freeze({ MOS6581: 0, MOS8580: 1 });
 FastSID.adrtable = [
 	1, 4, 8, 12, 19, 28, 34, 40, 50, 125, 250, 400, 500, 1500, 2500, 4000
 ];
@@ -59,8 +58,6 @@ FastSID.const = Object.freeze({
 	SUSTAIN:  2,
 	RELEASE:  3,
 	IDLE:     4,
-	CLK_PAL: 985248,
-        CLK_NTSC: 1022730,
 	NOISETABLESIZE: 256
 }); 
 
@@ -246,7 +243,7 @@ FastSID.prototype.setup_wavetables = function() {
 		this.wavetable50[i] = 0;
 		this.wavetable60[i] = 0;
 		this.wavetable70[i] = 0;
-		if (this.sid_model == FastSID.chip_model.MOS8580) {
+		if (this.sid_model == jsSID.chip.model.MOS8580) {
 			this.wavetable50[i + 4096] = combo[i + 4096] << 7;
 			this.wavetable60[i + 4096] = combo[i + 8192] << 7;
 			this.wavetable70[i + 4096] = combo[i + 12288] << 7;
@@ -328,7 +325,7 @@ FastSID.prototype.setup_voice = function(pv) {
 			pv.wt = this.wavetable70;
 			pv.wt_off = 4096 - (this.d[pv.d_o + 2] + (this.d[pv.d_o + 3] & 0x0f) * 0x100);
 			pv.wtpf = pv.wt_off << 20;
-			if (this.d[pv.d_o + 4] & 0x04 && (this.sid_model == FastSID.chip_model.MOS8580)) {
+			if (this.d[pv.d_o + 4] & 0x04 && (this.sid_model == jsSID.chip.model.MOS8580)) {
 				pv.wtr[1] = 0x7fff;
 			}
 			break;

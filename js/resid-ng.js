@@ -270,7 +270,7 @@ EnvelopeGenerator.prototype.set_exponential_counter = function() {
 // Waveform object
 function WaveformGenerator() {
 	this.sync_source = this;
-	this.sid_model = ReSID.chip_model.MOS6581;
+	this.sid_model = jsSID.chip.model.MOS6581;
 	this.reset();
 }
 
@@ -590,13 +590,13 @@ WaveformGenerator.model_dac = function() {
 Voice = function() {
 	this.envelope = new EnvelopeGenerator();
 	this.wave = new WaveformGenerator();
-	this.set_chip_model(ReSID.chip_model.MOS6581);
+	this.set_chip_model(jsSID.chip.model.MOS6581);
 };
 
 Voice.prototype.set_chip_model = function(model) {
 	this.wave.set_chip_model(model);
 	this.envelope.set_chip_model(model);
-	if (model == ReSID.chip_model.MOS6581) {
+	if (model == jsSID.chip.model.MOS6581) {
 		this.wave_zero = 0x380;
 	} else {
 		this.wave_zero = 0x800;
@@ -767,7 +767,7 @@ PointPlotter.interpolate_segment =
 
 Filter = function() {
 	this.enable_filter(true);
-	this.set_chip_model(ReSID.chip_model.MOS6581);
+	this.set_chip_model(jsSID.chip.model.MOS6581);
 	this.set_voice_mask(0x07);
 	this.input(0);
 	this.reset();
@@ -1930,7 +1930,7 @@ Filter.prototype.solve_integrate_6581_Vbp = function(dt, mf) {
 // Main Object
 function ReSID (sampleRate, clkRate, method) {
 	sampleRate = sampleRate || 44100;
-	clkRate = clkRate || ReSID.const.CLK_PAL;
+	clkRate = clkRate || jsSID.chip.clock.PAL;
 	method = method || ReSID.sampling_method.SAMPLE_FAST;
 
 	this.sample = 0;
@@ -1946,7 +1946,7 @@ function ReSID (sampleRate, clkRate, method) {
 	this.bus_value_ttl = 0;
 	this.write_pipeline = 0;
 
-	this.sid_model = ReSID.chip_model.MOS6581;
+	this.sid_model = jsSID.chip.model.MOS6581;
 
 	this.voice = new Array(3);
 	for(var i = 0; i < 3; i++) {
@@ -1958,14 +1958,14 @@ function ReSID (sampleRate, clkRate, method) {
 	this.voice[1].set_sync_source(this.voice[0]);
 	this.voice[2].set_sync_source(this.voice[1]);
 
-	this.set_chip_model(ReSID.chip_model.MOS6581);
+	this.set_chip_model(jsSID.chip.model.MOS6581);
 
 	// FIXME: hardcoded sample method. should be options.
 	this.set_sampling_parameters(clkRate, method, sampleRate);
 }
 //FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter we don't.
 
-ReSID.chip_model = Object.freeze({ MOS6581: 0, MOS8580: 1 });
+jsSID.chip.model = Object.freeze({ MOS6581: 0, MOS8580: 1 });
 ReSID.const = Object.freeze({
 	FIR_N: 125,
 	FIR_RES: 285,
@@ -1974,9 +1974,7 @@ ReSID.const = Object.freeze({
 	RINGSIZE: (1 << 14),
 	RINGMASK: (1 << 14) - 1,
 	FIXP_SHIFT: 16,
-	FIXP_MASK: 0xffff,
-	CLK_PAL: 985248,
-	CLK_NTSC: 1022730
+	FIXP_MASK: 0xffff
 });
 ReSID.sampling_method = Object.freeze({
 	SAMPLE_FAST: {},
@@ -2047,7 +2045,7 @@ ReSID.prototype.write = function(offset, value) {
 	this.write_address = offset;
 	this.bus_value = value;
 	this.bus_value_ttl = 0x4000;
-	if (this.sid_model == ReSID.chip_model.MOS8580) {
+	if (this.sid_model == jsSID.chip.model.MOS8580) {
 		this.write_pipeline = 1;
 	} else {
 		this.write_commit();
