@@ -1674,4 +1674,26 @@ jsSID.ReSID.prototype.generate = function(samples) {
         return data;
 };
 
+// add driver profile(s) to registry:
+jsSID.synth.resid_fast = {
+        desc: "ReSID - Fast",
+        class: "ReSID",
+        opts: { method: jsSID.ReSID.sampling_method.SAMPLE_FAST }
+};
+jsSID.synth.resid_interpolate = {
+        desc: "ReSID - Interpolate",
+        class: "ReSID",
+        opts: { method: jsSID.ReSID.sampling_method.SAMPLE_INTERPOLATE }
+};
+jsSID.synth.resid_resample_fast = {
+        desc: "ReSID - Resample/Fast (Broken)",
+        class: "ReSID",
+        opts: { method: jsSID.ReSID.sampling_method.SAMPLE_RESAMPLE_FAST }
+};
+jsSID.synth.resid_resample_interpolate = {
+        desc: "ReSID - Resample/Interpolate",
+        class: "ReSID",
+        opts: { method: jsSID.ReSID.sampling_method.SAMPLE_RESAMPLE_INTERPOLATE }
+};
+
 

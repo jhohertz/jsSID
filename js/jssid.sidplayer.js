@@ -3,7 +3,7 @@
 // constructor
 jsSID.SIDPlayer = function(opts) {
         opts = opts || {};
-        this.quality = opts.quality || jsSID.Factory.quality.good;
+        this.quality = opts.quality || jsSID.quality.good;
         this.clock = opts.clock || jsSID.chip.clock.PAL;
         this.model = opts.model || jsSID.chip.model.MOS6581;
 
@@ -21,7 +21,7 @@ jsSID.SIDPlayer = function(opts) {
                 quality: this.quality,
                 clock: this.clock,
                 model: this.model,
-                mixrate: this.sink.sampleRate
+                sampleRate: this.sink.sampleRate
         });
 
 }
@@ -74,7 +74,7 @@ jsSID.SIDPlayer.SIDFile.prototype.loadFileFromData = function(data) {
 
 jsSID.SIDPlayer.SIDFile.prototype.infostring = function() {
 	var ret = "";
-        ret += this.name + " ( " + this.author + " / &copy; " + this.copyright + " )";
+        ret += this.name + " " + this.startsong + "/" + this.subsongs + " ( " + this.author + " / &copy; " + this.copyright + " )";
 	return ret;
 }
 

@@ -509,3 +509,10 @@ jsSID.TinySID.pFloat.multiply = function(a, b) {
 // end pFloat;
 
 
+// add driver profile(s) to registry:
+jsSID.synth.tinysid = {
+	desc: "TinySID",
+        class: "TinySID",
+	opts: {}
+}
+

@@ -2,7 +2,7 @@
 jsSID.DMPPlayer = function(opts) {
 	console.log("player opts", opts);
         opts = opts || {};
-        this.quality = opts.quality || jsSID.Factory.quality.good;
+        this.quality = opts.quality || jsSID.quality.good;
         this.clock = opts.clock || jsSID.chip.clock.PAL;
         this.model = opts.model || jsSID.chip.model.MOS6581;
 	// state signaled to audiomanager
@@ -17,7 +17,7 @@ jsSID.DMPPlayer = function(opts) {
 		quality: this.quality,
 		clock: this.clock,
 		model: this.model,
-		mixrate: this.sink.sampleRate
+		sampleRate: this.sink.sampleRate
 	});
 
 	this.siddmp = null;

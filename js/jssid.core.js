@@ -13,3 +13,20 @@ jsSID.chip = Object.freeze({
 	clock: { PAL: 985248, NTSC: 1022730 }
 });
 
+jsSID.synth = {};
+// sid drivers will add entries of the form:
+// jsSID.synth.somesid_o1 = {
+//     desc: "TinySID"
+//     opts: {} 
+// }
+
+// maps to driver names as an interim between old/new expressions on drivers
+jsSID.quality = Object.freeze({
+        low: "tinysid",
+        medium: "fastsid",
+        good: "resid_fast",
+        better: "resid_interpolate",
+        best: "resid_resample_interpolate",
+        broken: "resid_resample_fast"
+});
+

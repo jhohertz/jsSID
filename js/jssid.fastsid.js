@@ -745,6 +745,12 @@ jsSID.FastSID.prototype.generate = function(samples) {
         return data;
 };
 
+// add driver profile(s) to registry:
+jsSID.synth.fastsid = {
+        desc: "FastSID",
+        class: "FastSID",
+        opts: {}
+}
 
 
 
