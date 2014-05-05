@@ -25,8 +25,8 @@ jsSID.ReSID = function(opts) {
 	this.voice[1].set_sync_source(this.voice[0]);
 	this.voice[2].set_sync_source(this.voice[1]);
 
-	// FIXME: hardcoded sample method. should be options.
 	this.set_sampling_parameters(clkRate, method, sampleRate);
+        this.set_chip_model(this.sid_model);
 }
 //FIXME: original had destructor calling "delete[] sample; delete fir[]". Shouldn't matter we don't.
 

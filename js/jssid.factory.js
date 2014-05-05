@@ -17,14 +17,15 @@ jsSID.Factory.prototype.create = function(f_opts) {
         f_opts = f_opts || {};
         var f_quality = f_opts.quality || jsSID.Factory.quality.good;
         var f_clock = f_opts.clock || jsSID.chip.clock.PAL;
+        var f_model = f_opts.model|| jsSID.chip.model.MOS6581;
         var f_sampleRate = f_opts.mixrate || 44100;
         var f_newsid;
         if(f_quality == jsSID.Factory.quality.low) {
                 f_newsid = new jsSID.TinySID({ sampleRate: f_sampleRate });
         } else if (f_quality == jsSID.Factory.quality.medium) {
-                f_newsid = new jsSID.FastSID({ sampleRate: f_sampleRate, clock: f_clock });
+                f_newsid = new jsSID.FastSID({ sampleRate: f_sampleRate, clock: f_clock, model: f_model });
         } else {
-                f_newsid = new jsSID.ReSID({ sampleRate: f_sampleRate, clock: f_clock, method: f_quality[1] });
+                f_newsid = new jsSID.ReSID({ sampleRate: f_sampleRate, clock: f_clock, model: f_model, method: f_quality[1] });
         }
         return f_newsid;
 };

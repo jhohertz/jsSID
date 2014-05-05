@@ -137,7 +137,6 @@
               </div>
               <div class="tab-pane" id="tab-model">
                 <p>
-                  <strong>WARNING:</strong> Not yet working, defaults to 6581/PAL if capable.
                   Model setting changes take effect on the next track loaded.
                 </p>
 
@@ -203,6 +202,30 @@
         return jsSID.Factory.quality[selectedVal];
       }
 
+      function getModel() {
+        var selectedVal = "";
+        var selected = $("input[type='radio'][name='sidmodel']:checked");
+        if (selected.length > 0) {
+          selectedVal = selected.val();
+        }
+        if(selectedVal == "") {
+          selectedVal = "6581";
+        }
+        return jsSID.chip.model["MOS" + selectedVal];
+      }
+
+      function getFreq() {
+        var selectedVal = "";
+        var selected = $("input[type='radio'][name='sidfreq']:checked");
+        if (selected.length > 0) {
+          selectedVal = selected.val();
+        }
+        if(selectedVal == "") {
+          selectedVal = "PAL";
+        }
+        return jsSID.chip.clock[selectedVal];
+      }
+
       function showalert(message) {
         $("#alertarea").html("<div class=\"alert\">" +
             "<button type=\"button\" class=\"close\" data-dismiss=\"alert\">&times;</button>" +
@@ -213,7 +236,7 @@
 
       var sidPlayer;
       function playsid(file) {
-        sidPlayer = new jsSID.SIDPlayer({ quality: getQuality() });
+        sidPlayer = new jsSID.SIDPlayer({ quality: getQuality(), clock: getFreq(), model: getModel() });
         $("#status").text("Loading: " + file);
         $("#play").unbind("click").click(function(){sidPlayer.play()});
         $("#stop").unbind("click").click(function(){sidPlayer.stop()});
@@ -225,7 +248,7 @@
       }
 
       function playdmp(file) {
-        sidDmpPlayer = new jsSID.DMPPlayer( { quality: getQuality() });
+        sidDmpPlayer = new jsSID.DMPPlayer( { quality: getQuality(), clock: getFreq(), model: getModel() });
         $("#status").text("Loading: " + file);
         $("#play").unbind("click").click(function(){sidDmpPlayer.play()});
         $("#stop").unbind("click").click(function(){sidDmpPlayer.stop()});
