@@ -30,3 +30,28 @@ jsSID.quality = Object.freeze({
         broken: "resid_resample_fast"
 });
 
+// static factory method
+jsSID.synthFactory = function(f_opts) {
+        console.log("factory", f_opts);
+        f_opts = f_opts || {};
+        var f_quality = f_opts.quality || jsSID.quality.good;
+        var engine = jsSID.synth[f_quality];
+       
+        var o = {};
+	var key;
+        for(key in engine.opts) {
+          o[key] = engine.opts[key];
+        }
+        for(key in f_opts) {
+          o[key] = f_opts[key];
+        }
+
+        o.clock = o.clock || jsSID.chip.clock.PAL;
+        o.model = o.model || jsSID.chip.model.MOS6581;
+        o.sampleRate = o.sampleRate || 44100;
+
+        console.log("factory, class:", engine.class);
+        var f_newsid = new window.jsSID[engine.class](o);
+        return f_newsid;
+};
+

@@ -16,8 +16,7 @@ jsSID.SIDPlayer = function(opts) {
         var that = this;
         this.sink = Sink(function(b, c){that.sinkCall(b,c);});
 
-        this.factory = new jsSID.Factory();
-        this.synth = this.factory.create({
+        this.synth = jsSID.synthFactory({
                 quality: this.quality,
                 clock: this.clock,
                 model: this.model,
