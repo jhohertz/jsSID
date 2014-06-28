@@ -51,7 +51,7 @@ jsSID.SIDPlayer.SIDFile.prototype.loadFileFromData = function(data) {
         stream.seek(0x36);
         this.author = stream.read(32);
         stream.seek(0x56);
-        this.copyright = stream.read(32);
+        this.published = stream.read(32);
 
         stream.seek(this.data_offset);
         this.load_addr       = stream.readInt8();
@@ -73,7 +73,7 @@ jsSID.SIDPlayer.SIDFile.prototype.loadFileFromData = function(data) {
 
 jsSID.SIDPlayer.SIDFile.prototype.infostring = function() {
 	var ret = "";
-        ret += this.name + " " + this.startsong + "/" + this.subsongs + " ( " + this.author + " / &copy; " + this.copyright + " )";
+        ret += this.name + " " + this.startsong + "/" + this.subsongs + " ( " + this.author + ", Published: " + this.published + " )";
 	return ret;
 }
 
