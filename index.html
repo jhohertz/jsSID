@@ -298,17 +298,17 @@
         $("#status").text("Loading: " + file);
         Stream.loadRemoteFile(file, function(data) {
           sidPlayer.loadFileFromData(data)
-          $("#play").removeClass("disabled").unbind("click").click(function(){
+          $("#play").unbind("click").click(function(){
             isPlaying = true;
 	    sidPlayer.play()
             manageButtonDisable();
           });
-          $("#stop").removeClass("disabled").unbind("click").click(function(){
+          $("#stop").unbind("click").click(function(){
             isPlaying = false;
 	    sidPlayer.stop();
             manageButtonDisable();
           });
-          $("#next").removeClass("disabled").unbind("click").click(function(){
+          $("#next").unbind("click").click(function(){
 	    sidPlayer.nextTrack();
             $("#trackinfo").html(sidPlayer.getSidFile().infostring());
             manageButtonDisable();
@@ -316,7 +316,7 @@
 	      sidPlayer.play();
 	    }
           });
-          $("#prev").removeClass("disabled").unbind("click").click(function(){
+          $("#prev").unbind("click").click(function(){
 	    sidPlayer.prevTrack();
             $("#trackinfo").html(sidPlayer.getSidFile().infostring());
             manageButtonDisable();
@@ -325,7 +325,6 @@
 	    }
           });
           $("#trackinfo").html(sidPlayer.getSidFile().infostring());
-          manageButtonDisable();
 	  // this state is kind if kludged, should be a neverPlayed = true flag that players clear for this
           if (wasPlaying == true) {
 	    sidPlayer.play();
@@ -335,7 +334,8 @@
             isPlaying = false;
             showalert("Loaded: " + file + ", press play");
           }
-        })
+          manageButtonDisable();
+        });
       }
 
       function playdmp(file) {
@@ -345,18 +345,17 @@
         $("#status").text("Loading: " + file);
         Stream.loadRemoteFile(file, function(data) {
           sidDmpPlayer.loadFileFromData(data)
-          $("#play").removeClass("disabled").unbind("click").click(function(){
+          $("#play").unbind("click").click(function(){
             isPlaying = true;
 	    sidDmpPlayer.play();
             manageButtonDisableDmp();
           });
-          $("#stop").removeClass("disabled").unbind("click").click(function(){
+          $("#stop").unbind("click").click(function(){
             isPlaying = false;
             sidDmpPlayer.stop()
             manageButtonDisableDmp();
           });
           $("#trackinfo").html(file);
-          manageButtonDisableDmp();
           if (wasPlaying == true) {
 	    sidDmpPlayer.play();
             isPlaying = true;
@@ -365,7 +364,8 @@
             isPlaying = false;
             showalert("Loaded: " + file + ", press play");
           }
-        })
+          manageButtonDisableDmp();
+        });
       }
 
       function addStatus(msg) {
