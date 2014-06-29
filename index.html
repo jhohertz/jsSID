@@ -273,16 +273,16 @@
 
       function manageButtonDisable() {
       	manageButtonDisableDmp();
-        if (sidPlayer.getSidFile().subsongs == 0) {
+        if (sidPlayer.getSidFile().getSubSongs() == 0) {
 	  $("#next").addClass("disabled");
 	  $("#prev").addClass("disabled");
         } else {
-          if (sidPlayer.getSidFile().currentsong == sidPlayer.getSidFile().subsongs) {
+          if (sidPlayer.getSidFile().getCurrentSong() == sidPlayer.getSidFile().getSubSongs()) {
 	    $("#next").addClass("disabled");
 	  } else {
 	    $("#next").removeClass("disabled");
 	  }
-          if (sidPlayer.getSidFile().currentsong == 0) {
+          if (sidPlayer.getSidFile().getCurrentSong() == 0) {
 	    $("#prev").addClass("disabled");
 	  } else {
 	    $("#prev").removeClass("disabled");
@@ -311,18 +311,18 @@
           $("#next").unbind("click").click(function(){
 	    sidPlayer.nextTrack();
             $("#trackinfo").html(sidPlayer.getSidFile().infostring());
-            manageButtonDisable();
-            if (isPlaying = true) {
+            if (isPlaying == true) {
 	      sidPlayer.play();
 	    }
+            manageButtonDisable();
           });
           $("#prev").unbind("click").click(function(){
 	    sidPlayer.prevTrack();
             $("#trackinfo").html(sidPlayer.getSidFile().infostring());
-            manageButtonDisable();
-            if (isPlaying = true) {
+            if (isPlaying == true) {
 	      sidPlayer.play();
 	    }
+            manageButtonDisable();
           });
           $("#trackinfo").html(sidPlayer.getSidFile().infostring());
 	  // this state is kind if kludged, should be a neverPlayed = true flag that players clear for this

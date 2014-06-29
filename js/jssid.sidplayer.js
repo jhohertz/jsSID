@@ -80,7 +80,15 @@ jsSID.SIDPlayer.SIDFile.prototype.infostring = function() {
         }
         ret += "| " + this.author + ", Published: " + this.published;
 	return ret;
-}
+};
+
+jsSID.SIDPlayer.SIDFile.prototype.getCurrentSong = function() {
+	return this.currentsong;
+};
+
+jsSID.SIDPlayer.SIDFile.prototype.getSubSongs = function() {
+	return this.subsongs;
+};
 
 jsSID.SIDPlayer.prototype.getSidFile = function() {
 	return this.sidfile;
