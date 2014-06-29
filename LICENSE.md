@@ -1,6 +1,6 @@
 Copyright (c) 2013, Joe Hohertz
 
-With the following 3rd party exceptions, this project is licenced under the GPL V2 licence.
+With the following 3rd party exceptions, this project is licensed under the GPL V2 license.
 
 jsxcompressor.js
 Dual licensed under the Apache License Version 2.0, or LGPL Version 3 licenses.
@@ -12,9 +12,9 @@ Bianca Valentin,
 Alfred Wassermann,
 Peter Wilfahrt
 
-## MIT LICENCE
+## MIT LICENSE
 
-The following 3rd party code is licensed under the MIT licence.
+The following 3rd party code is licensed under the MIT license.
 
 Base64 Additions to stream.js:
 Copyright (c) 2010, Robert Kieffer
