@@ -2,7 +2,7 @@
 
 
 There are also places there are simulations of concepts alien to C, but available in Javascript (IE: Infinity) that could probably simplify some code quite if factored out.
-p a tab with the [demo player](http://jhohertz.github.io/jssid) and get some music going.
+p a tab with the [demo player](http://jhohertz.github.io/jsSID) and get some music going.
 
 jsSID is a javascript port of *several* emulations of the [SID](http://en.wikipedia.org/wiki/MOS_Technology_SID) sound generator chip as used in the [Commodore 64](http://en.wikipedia.org/wiki/Commodore_64). These are native rewrites in javascript vs. using an [asm.js](http://asmjs.org/) compiler.
 
