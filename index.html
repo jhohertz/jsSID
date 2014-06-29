@@ -168,7 +168,7 @@
               <div class="tab-pane" id="tab-about">
                 <p>Works in Firefox/Chrome on desktop + ios6+ and android</p>
                 <p>No IE support until IE 12, which implements the audio APIs I hear?</p>
-                <p>Code available [at the GitHub repository](https://github.com/jhohertz/jssid)</p>
+                <p>Code available <a href="https://github.com/jhohertz/jssid">at the GitHub repository</a></p>
               </div>
             </div>
           </div>
@@ -238,11 +238,11 @@
         );
       }
 
-
-
       var sidPlayer;
       var sidDmpPlayer;
       var isPlaying = false;
+      // used by load for autoplay after load
+      var wasPlaying = false;
 
       function killPlayers() {
         isPlaying = false;
@@ -292,6 +292,7 @@
 
       function playsid(file) {
         // this be ugly, but ok till generic players
+        wasPlaying = isPlaying;
         this.killPlayers();
         sidPlayer = new jsSID.SIDPlayer({ quality: getQuality(), clock: getFreq(), model: getModel() });
         $("#status").text("Loading: " + file);
@@ -326,16 +327,19 @@
           $("#trackinfo").html(sidPlayer.getSidFile().infostring());
           manageButtonDisable();
 	  // this state is kind if kludged, should be a neverPlayed = true flag that players clear for this
-          if (isPlaying == true) {
+          if (wasPlaying == true) {
 	    sidPlayer.play();
+            isPlaying = true;
             showalert("Loaded: " + file);
 	  } else {
+            isPlaying = false;
             showalert("Loaded: " + file + ", press play");
           }
         })
       }
 
       function playdmp(file) {
+        wasPlaying = isPlaying;
         this.killPlayers();
         sidDmpPlayer = new jsSID.DMPPlayer( { quality: getQuality(), clock: getFreq(), model: getModel() });
         $("#status").text("Loading: " + file);
@@ -353,10 +357,12 @@
           });
           $("#trackinfo").html(file);
           manageButtonDisableDmp();
-          if (isPlaying == true) {
+          if (wasPlaying == true) {
 	    sidDmpPlayer.play();
+            isPlaying = true;
             showalert("Loaded: " + file);
 	  } else {
+            isPlaying = false;
             showalert("Loaded: " + file + ", press play");
           }
         })
