@@ -44,6 +44,7 @@ jsSID.SIDPlayer.SIDFile.prototype.loadFileFromData = function(data) {
         this.subsongs    = stream.readInt8() - 1;                // 0x0f
         stream.seek(0x11);
         this.startsong   = stream.readInt8() - 1;                // 0x11
+        this.currentsong = this.startsong;
         stream.seek(0x15);
         this.speed       = stream.readInt8();            // 0x15
         stream.seek(0x16);
@@ -73,7 +74,7 @@ jsSID.SIDPlayer.SIDFile.prototype.loadFileFromData = function(data) {
 
 jsSID.SIDPlayer.SIDFile.prototype.infostring = function() {
 	var ret = "";
-        ret += this.name + " " + this.startsong + "/" + this.subsongs + " ( " + this.author + ", Published: " + this.published + " )";
+        ret += this.name + " " + this.currentsong + "/" + this.subsongs + " ( " + this.author + ", Published: " + this.published + " )";
 	return ret;
 }
 
@@ -123,14 +124,39 @@ jsSID.SIDPlayer.prototype.loadFileFromData = function(data) {
 	}
 
 	this.synth.poke(24,15);		// turn up volume
-	this.cpu.cpuJSR(this.sidfile.init_addr, this.sidfile.startsong);
+	this.changeTrack(this.sidfile.startsong);
+};
 
-	this.finished = false;
-	this.samplesToNextFrame = 0;
+jsSID.SIDPlayer.prototype.changeTrack = function(track) {
+        if (track >= 0 && track <= this.sidfile.subsongs) {
+		this.stop();
+		this.cpu.cpuReset();
+		this.sidfile.currentsong = track;
+		this.cpu.cpuJSR(this.sidfile.init_addr, this.sidfile.currentsong);
 
-	// get the first frame
-	this.getNextFrame();
+		this.finished = false;
+		this.samplesToNextFrame = 0;
 
+		// get the first frame
+		this.getNextFrame();
+	}
+};
+
+// will not exceed bounds
+jsSID.SIDPlayer.prototype.nextTrack = function() {
+	this.changeTrack(this.sidfile.currentsong + 1);
+};
+
+jsSID.SIDPlayer.prototype.prevTrack = function() {
+	this.changeTrack(this.sidfile.currentsong - 1);
+};
+
+jsSID.SIDPlayer.prototype.getTrack = function() {
+	return this.sidfile.currentsong;
+};
+
+jsSID.SIDPlayer.prototype.getTracks = function() {
+	return this.sidfile.subsongs;
 };
 
 jsSID.SIDPlayer.prototype.getNextFrame = function() {

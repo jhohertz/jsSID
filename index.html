@@ -52,16 +52,18 @@
       </div>
 
       <div class="row">
-        <div class="span1">
+        <div class="span2">
           <!-- transport controls -->
           <div class="btn-toolbar pull-left">
             <div class="btn-group">
-              <a class="btn" href="#" id="play"><i class="icon-play"></i></a>
-              <a class="btn" href="#" id="stop"><i class="icon-stop"></i></a>
+              <a class="btn disabled" href="#" id="play"><i class="icon-play"></i></a>
+              <a class="btn disabled" href="#" id="stop"><i class="icon-stop"></i></a>
+              <a class="btn disabled" href="#" id="prev"><i class="icon-step-backward"></i></a>
+              <a class="btn disabled" href="#" id="next"><i class="icon-step-forward"></i></a>
             </div>
           </div>
         </div>
-        <div class="span8">
+        <div class="span7">
           <br/>
           <div id="trackinfo">
             <p>No file loaded</p>
@@ -164,6 +166,8 @@
               </div>
               <div class="tab-pane" id="tab-about">
                 <p>Works in Firefox/Chrome on desktop + ios6+ and android</p>
+                <p>No IE support until IE 12, which implements the audio APIs I hear?</p>
+                <p>Code available [at the GitHub repository](https://github.com/jhohertz/jssid)</p>
               </div>
             </div>
           </div>
@@ -233,28 +237,90 @@
         );
       }
 
+
+
       var sidPlayer;
+      var sidDmpPlayer;
+      var isPlaying = false;
+
+      function killPlayers() {
+        isPlaying = false;
+        $("#play").unbind("click").addClass("disabled");
+        $("#stop").unbind("click").addClass("disabled");
+        $("#next").unbind("click").addClass("disabled");
+        $("#prev").unbind("click").addClass("disabled");
+
+        if(sidPlayer != null) {
+          sidPlayer.stop();
+	  sidPlayer = null;
+        }
+        if(sidDmpPlayer != null) {
+          sidDmpPlayer.stop();
+	  sidDmpPlayer = null;
+        }
+      }
+
       function playsid(file) {
+        // this be ugly, but ok till generic players
+        this.killPlayers();
         sidPlayer = new jsSID.SIDPlayer({ quality: getQuality(), clock: getFreq(), model: getModel() });
         $("#status").text("Loading: " + file);
-        $("#play").unbind("click").click(function(){sidPlayer.play()});
-        $("#stop").unbind("click").click(function(){sidPlayer.stop()});
         Stream.loadRemoteFile(file, function(data) {
           sidPlayer.loadFileFromData(data)
+          $("#play").removeClass("disabled").unbind("click").click(function(){
+            isPlaying = true;
+	    sidPlayer.play()
+          });
+          $("#stop").removeClass("disabled").unbind("click").click(function(){
+            isPlaying = false;
+	    sidPlayer.stop();
+          });
+          $("#next").removeClass("disabled").unbind("click").click(function(){
+	    sidPlayer.nextTrack();
+            $("#trackinfo").html(sidPlayer.getSidFile().infostring());
+            if (isPlaying = true) {
+	      sidPlayer.play();
+	    }
+          });
+          $("#prev").removeClass("disabled").unbind("click").click(function(){
+	    sidPlayer.prevTrack();
+            $("#trackinfo").html(sidPlayer.getSidFile().infostring());
+            if (isPlaying = true) {
+	      sidPlayer.play();
+	    }
+          });
           $("#trackinfo").html(sidPlayer.getSidFile().infostring());
-          showalert("Loaded " + file + ", press play");
+	  // this state is kind if kludged, should be a neverPlayed = true flag that players clear for this
+          if (isPlaying == true) {
+	    sidPlayer.play();
+            showalert("Loaded: " + file);
+	  } else {
+            showalert("Loaded: " + file + ", press play");
+          }
         })
       }
 
       function playdmp(file) {
+        this.killPlayers();
         sidDmpPlayer = new jsSID.DMPPlayer( { quality: getQuality(), clock: getFreq(), model: getModel() });
         $("#status").text("Loading: " + file);
-        $("#play").unbind("click").click(function(){sidDmpPlayer.play()});
-        $("#stop").unbind("click").click(function(){sidDmpPlayer.stop()});
         Stream.loadRemoteFile(file, function(data) {
           sidDmpPlayer.loadFileFromData(data)
+          $("#play").removeClass("disabled").unbind("click").click(function(){
+            isPlaying = true;
+	    sidDmpPlayer.play();
+          });
+          $("#stop").removeClass("disabled").unbind("click").click(function(){
+            isPlaying = false;
+            sidDmpPlayer.stop()
+          });
           $("#trackinfo").html(file);
-          showalert("Loaded " + file + ", press play");
+          if (isPlaying == true) {
+	    sidDmpPlayer.play();
+            showalert("Loaded: " + file);
+	  } else {
+            showalert("Loaded: " + file + ", press play");
+          }
         })
       }
 
