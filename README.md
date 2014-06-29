@@ -1,6 +1,5 @@
 ## jsSID
 
-
 There are also places there are simulations of concepts alien to C, but available in Javascript (IE: Infinity) that could probably simplify some code quite if factored out.
 p a tab with the [demo player](http://jhohertz.github.io/jsSID) and get some music going.
 
@@ -27,4 +26,10 @@ Also, the format of SID file supported it is probably ancient relative to the la
 Sub-songs in a SID file are supported, although there are some bugs (transport control state on mobile disables wrong buttons sometimes, some SIDs report songs that do not seem to work, Monty on the Run track 2 will freeze the browser if it completes)
 
 This code is hand ported from the C sources. Some parts have been adapted to be more javascript friendly, re: data structures mostly, but at the higher levels is fairly true to C code. A consequence of some of this, is needing to manage C-like expectations on some of the mechanics of rollover or signedness on various types, like 32 or 16 bit. In some cases there may be overly paranoid checking that could be toned down. There are also places there are simulations of concepts alien to C, but available in Javascript (IE: Infinity) that could probably simplify some code quite if factored out.
+
+Lastly, there is no nice build/packaging yet. I'd like to wrap this as an NPM/Bower package with all the fixings soon.
+
+Anyhow, I hope you've enjoyed the music if nothing else!
+
+@jhohertz
 
