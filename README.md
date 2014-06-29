@@ -1,11 +1,13 @@
 ## jsSID
 
+First, pop a tab with the [demo player](http://jhohertz.github.io/jssid) and get some music going.
+
 jsSID is a javascript port of several emulations of the [SID](http://en.wikipedia.org/wiki/MOS_Technology_SID) sound generator chip as used in the Commodore 64.
 
-- TinySID (from rockbox)
+- TinySID ([from rockbox](http://git.rockbox.org/?p=rockbox.git;a=blob_plain;f=lib/rbcodec/codecs/sid.c;hb=refs/heads/master))
   - the [MOS6510 CPU](http://en.wikipedia.org/wiki/MOS_Technology_6510) emulation inspired by this.
 - [ReSID](http://en.wikipedia.org/wiki/ReSID) (from libsidplay)
-- FastSID (from vice)
+- FastSID (from [vice](http://vice-emu.sourceforge.net/))
 - ReSID-NG (from vice, not yet working, behind on integration, bit rotted, waiting on other cleanups before bringing it back.)
 
 It has been integrated enough to allow players to swap between implementations of the SID, and for all but tinysid (which has no settings really), set the sid frequency (IE: NTSC/PAL), and set the model (6581 or 8550) to emulate. A SID implementation can register multiple configurations of itself. ReSID uses this to expose its sampling configurations.

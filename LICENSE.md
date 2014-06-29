@@ -2,6 +2,12 @@ Copyright (c) 2013, Joe Hohertz
 
 With the following 3rd party exceptions, this project is licensed under the GPL V2 license.
 
+Some code losely based on TinySID as found in Rockbox:
+Licensed under the GPL V2 license.
+Written by Tammo Hinrichs (kb) and Rainer Sinsch in 1998-1999
+
+TODO: RESID credits
+
 jsxcompressor.js
 Dual licensed under the Apache License Version 2.0, or LGPL Version 3 licenses.
 Copyright 2008-2012
