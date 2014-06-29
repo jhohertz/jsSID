@@ -32,7 +32,7 @@ jsSID.quality = Object.freeze({
 
 // static factory method
 jsSID.synthFactory = function(f_opts) {
-        console.log("factory", f_opts);
+        //console.log("factory", f_opts);
         f_opts = f_opts || {};
         var f_quality = f_opts.quality || jsSID.quality.good;
         var engine = jsSID.synth[f_quality];
@@ -50,7 +50,7 @@ jsSID.synthFactory = function(f_opts) {
         o.model = o.model || jsSID.chip.model.MOS6581;
         o.sampleRate = o.sampleRate || 44100;
 
-        console.log("factory, class:", engine.class);
+        //console.log("factory, class:", engine.class);
         var f_newsid = new window.jsSID[engine.class](o);
         return f_newsid;
 };
