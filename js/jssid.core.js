@@ -7,6 +7,8 @@
 function jsSID() {
 }
 
+jsSID.version = "0.0.1";
+
 // chip configuration constants
 jsSID.chip = Object.freeze({ 
 	model: { MOS6581: 0, MOS8580: 1 },
