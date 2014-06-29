@@ -261,6 +261,35 @@
         }
       }
 
+      function manageButtonDisableDmp() {
+	if (isPlaying) {
+	  $("#stop").removeClass("disabled");
+	  $("#play").addClass("disabled");
+        } else { 
+	  $("#stop").addClass("disabled");
+	  $("#play").removeClass("disabled");
+        }
+      }
+
+      function manageButtonDisable() {
+      	manageButtonDisableDmp();
+        if (sidPlayer.getSidFile().subsongs == 0) {
+	  $("#next").addClass("disabled");
+	  $("#prev").addClass("disabled");
+        } else {
+          if (sidPlayer.getSidFile().currentsong == sidPlayer.getSidFile().subsongs) {
+	    $("#next").addClass("disabled");
+	  } else {
+	    $("#next").removeClass("disabled");
+	  }
+          if (sidPlayer.getSidFile().currentsong == 0) {
+	    $("#prev").addClass("disabled");
+	  } else {
+	    $("#prev").removeClass("disabled");
+	  }
+        }
+      }
+
       function playsid(file) {
         // this be ugly, but ok till generic players
         this.killPlayers();
@@ -271,14 +300,17 @@
           $("#play").removeClass("disabled").unbind("click").click(function(){
             isPlaying = true;
 	    sidPlayer.play()
+            manageButtonDisable();
           });
           $("#stop").removeClass("disabled").unbind("click").click(function(){
             isPlaying = false;
 	    sidPlayer.stop();
+            manageButtonDisable();
           });
           $("#next").removeClass("disabled").unbind("click").click(function(){
 	    sidPlayer.nextTrack();
             $("#trackinfo").html(sidPlayer.getSidFile().infostring());
+            manageButtonDisable();
             if (isPlaying = true) {
 	      sidPlayer.play();
 	    }
@@ -286,11 +318,13 @@
           $("#prev").removeClass("disabled").unbind("click").click(function(){
 	    sidPlayer.prevTrack();
             $("#trackinfo").html(sidPlayer.getSidFile().infostring());
+            manageButtonDisable();
             if (isPlaying = true) {
 	      sidPlayer.play();
 	    }
           });
           $("#trackinfo").html(sidPlayer.getSidFile().infostring());
+          manageButtonDisable();
 	  // this state is kind if kludged, should be a neverPlayed = true flag that players clear for this
           if (isPlaying == true) {
 	    sidPlayer.play();
@@ -310,12 +344,15 @@
           $("#play").removeClass("disabled").unbind("click").click(function(){
             isPlaying = true;
 	    sidDmpPlayer.play();
+            manageButtonDisableDmp();
           });
           $("#stop").removeClass("disabled").unbind("click").click(function(){
             isPlaying = false;
             sidDmpPlayer.stop()
+            manageButtonDisableDmp();
           });
           $("#trackinfo").html(file);
+          manageButtonDisableDmp();
           if (isPlaying == true) {
 	    sidDmpPlayer.play();
             showalert("Loaded: " + file);

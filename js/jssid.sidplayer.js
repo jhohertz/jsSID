@@ -74,7 +74,11 @@ jsSID.SIDPlayer.SIDFile.prototype.loadFileFromData = function(data) {
 
 jsSID.SIDPlayer.SIDFile.prototype.infostring = function() {
 	var ret = "";
-        ret += this.name + " " + this.currentsong + "/" + this.subsongs + " ( " + this.author + ", Published: " + this.published + " )";
+        ret += this.name + " ";
+        if (this.subsongs > 0) {
+          ret += "( " + (this.currentsong + 1) + " / " + (this.subsongs + 1) + " ) ";
+        }
+        ret += "| " + this.author + ", Published: " + this.published;
 	return ret;
 }
 
