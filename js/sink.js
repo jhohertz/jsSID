@@ -800,7 +800,7 @@ sinks('webaudio', function (readFn, channelCount, bufferSize, sampleRate) {
 	src = context.createBufferSource();
 	src.noteOn(0);
 
-	node = context.createJavaScriptNode(self.bufferSize, self.channelCount, self.channelCount);
+	node = context.createScriptProcessor(self.bufferSize, self.channelCount, self.channelCount);
 	src.connect(node); // not strictly needed
 
 	function bufferFill(e) {
