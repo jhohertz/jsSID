@@ -1,12 +1,16 @@
 {
-  "name": "jssid",
+  "name": "jsSID",
   "version": "0.0.1",
+  "description": "A port of several SID emulations to javascript"
+  "author": "Joe Hohertz <jhohertz@gmail.com>",
+  "keywords": [ "audio", "emulation" ]
   "repository": {
     "type": "git",
     "url": "https://github.com/jhohertz/jsSID.git"
   },
-  "authors": [ "Joe Hohertz" ],
-  "description": "A port of several SID emulations to javascript"
+  "dependencies": {
+    "pico": "*"
+  },
   "devDependencies": {
     "grunt": "~0.4.1",
     "load-grunt-tasks": "~0.4.0",
