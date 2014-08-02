@@ -703,9 +703,8 @@ jsSID.FastSID.prototype.calculate_single_sample = function () {
 jsSID.FastSID.prototype.calculate_samples = function (pbuf, nr, interleave, delta_t, offset) {
     var i;
     for (i = 0; i < nr ; i++) {
-	var idx = i * interleave * 2 + offset;
+	var idx = i * interleave + offset;
         pbuf[idx] = this.calculate_single_sample() / 32768;
-        pbuf[idx + 1] = pbuf[idx];
     }
     return nr;
 };
@@ -729,7 +728,7 @@ jsSID.FastSID.prototype.NVALUE = function(v) {
 jsSID.FastSID.prototype.generateIntoBuffer = function(count, buffer, offset) {
         //console.log("SID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
         // FIXME: this could be done in one pass. (No?)
-        for (var i = offset; i < offset + count * 2; i++) {
+        for (var i = offset; i < offset + count; i++) {
                 buffer[i] = 0;
         }
         var delta = (this.cycles_per_sample * count) >> 16;
@@ -740,7 +739,7 @@ jsSID.FastSID.prototype.generateIntoBuffer = function(count, buffer, offset) {
 };
 
 jsSID.FastSID.prototype.generate = function(samples) {
-        var data = new Array(samples*2);
+        var data = new Array(samples);
         this.generateIntoBuffer(samples, data, 0);
         return data;
 };
@@ -751,10 +750,4 @@ jsSID.synth.fastsid = {
         class: "FastSID",
         opts: {}
 }
-
-
-
-
-
-
 

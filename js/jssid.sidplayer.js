@@ -14,13 +14,11 @@ jsSID.SIDPlayer = function(opts) {
 	this.finished = false;
 
         var that = this;
-        this.sink = Sink(function(b, c){that.sinkCall(b,c);});
-
         this.synth = jsSID.synthFactory({
                 quality: this.quality,
                 clock: this.clock,
                 model: this.model,
-                sampleRate: this.sink.sampleRate
+                sampleRate: pico.samplerate
         });
 
 }
@@ -94,28 +92,33 @@ jsSID.SIDPlayer.prototype.getSidFile = function() {
 	return this.sidfile;
 };
 
-// to use sink vs audiomanager
-jsSID.SIDPlayer.prototype.sinkCall = function(buffer, channels) {
+// Pico.js hook for processing
+jsSID.SIDPlayer.prototype.process = function(L, R) {
         if(this.ready) {
-                var written = this.generateIntoBuffer(buffer.length, buffer, 0);
+                var written = this.generateIntoBuffer(L.length, L, 0);
                 if (written === 0) {
-                                //play_mod(random_mod_href());
-                                this.ready = false;
-                                this.finished = true;
-                                return 0;
+                        //play_mod(random_mod_href());
+                        this.ready = false;
+                        this.finished = true;
+			this.stop();
                 } else {
-                                return written;
+                        // copy left channel to right
+                        for (var i = 0; i < L.length; i++) {
+                                R[i] = L[i];
+                        }
                 }
+        } else {
+		this.stop();
         }
-
 };
-
 
 jsSID.SIDPlayer.prototype.play = function() {
         this.ready = true;
+	pico.play(this);
 };
 
 jsSID.SIDPlayer.prototype.stop = function() {
+	pico.pause();
         this.ready = false;
 };
 
@@ -206,12 +209,12 @@ jsSID.SIDPlayer.prototype.generate = function(samples) {
 	
 // generator
 jsSID.SIDPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffset) {
-	if(!this.ready) return [0.0,0.0];
+	if(!this.ready) return 0;
 	dataOffset = dataOffset || 0;
 	var dataOffsetStart = dataOffset;
 
 	//console.log("Generating " + samples + " samples (" + samplesToNextFrame + " to next frame)");
-	var samplesRemaining = samples / 2;
+	var samplesRemaining = samples;
 	var generated;	
 	while (true) {
 		if (this.samplesToNextFrame !== null && this.samplesToNextFrame <= samplesRemaining) {
@@ -219,7 +222,7 @@ jsSID.SIDPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffse
 			//console.log("next frame: " + samplesToNextFrame + ", remaining: " + samplesRemaining + ", offset: " + dataOffset + ", generate: " + samplesToGenerate);
 			if (samplesToGenerate > 0) {
 				generated = this.synth.generateIntoBuffer(samplesToGenerate, data, dataOffset);
-				dataOffset += generated * 2;
+				dataOffset += generated;
 				samplesRemaining -= generated;
 				this.samplesToNextFrame -= generated;
 			}
@@ -229,7 +232,7 @@ jsSID.SIDPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffse
 			/* generate samples to end of buffer */
 			if (samplesRemaining > 0) {
 				generated = this.synth.generateIntoBuffer(samplesRemaining, data, dataOffset);
-				dataOffset += generated * 2;
+				dataOffset += generated;
 				samplesRemaining -= generated;
 				this.samplesToNextFrame -= generated;
 			}
@@ -239,13 +242,4 @@ jsSID.SIDPlayer.prototype.generateIntoBuffer = function(samples, data, dataOffse
 	//console.log("data: ", data);
 	return dataOffset - dataOffsetStart;
 };
-
-
-	
-//function replay(audio) {
-//	console.log('replay');
-//	audio.write(generate(44100));
-//	setTimeout(function() {replay(audio)}, 10);
-//}
-	
 

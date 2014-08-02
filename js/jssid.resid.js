@@ -1469,9 +1469,8 @@ jsSID.ReSID.prototype.clock_fast = function(delta_t, buf, n, interleave, buf_off
 		this.sample_offset = (next_sample_offset & jsSID.ReSID.const.FIXP_MASK) - (1 << (jsSID.ReSID.const.FIXP_SHIFT - 1));
 		// new sample output w/ offset
 		var final_sample = parseFloat(this.output()) / 32768;
-		var buf_idx = s++ * interleave * 2 + buf_offset;
+		var buf_idx = s++ * interleave + buf_offset;
 		buf[buf_idx] = final_sample;
-		buf[buf_idx + 1] = final_sample;
 	}
 	this.clock_delta(delta_t);
 	this.sample_offset -= delta_t << jsSID.ReSID.const.FIXP_SHIFT;
@@ -1506,9 +1505,8 @@ jsSID.ReSID.prototype.clock_interpolate = function(delta_t, buf, n, interleave, 
 		var sample_now = this.output();
 		// new sample output w/ offset
 		var final_sample = parseFloat(this.sample_prev + (this.sample_offset * (sample_now - this.sample_prev) >> jsSID.ReSID.const.FIXP_SHIFT)) / 32768;
-		var buf_idx = s++ * interleave * 2 + buf_offset;
+		var buf_idx = s++ * interleave + buf_offset;
 		buf[buf_idx] = final_sample;
-		buf[buf_idx + 1] = final_sample;
 		this.sample_prev = sample_now;
 	}
 
@@ -1580,9 +1578,8 @@ jsSID.ReSID.prototype.clock_resample_interpolate = function(delta_t, buf, n, int
 		}
 		// new sample output w/ offset
 		var final_sample = parseFloat(v) / 32768;
-		var buf_idx = s++ * interleave * 2 + buf_offset;
+		var buf_idx = s++ * interleave + buf_offset;
 		buf[buf_idx] = final_sample;
-		buf[buf_idx + 1] = final_sample;
 	}
 
 	for (var m = 0; m < delta_t; m++) {
@@ -1637,9 +1634,8 @@ jsSID.ReSID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave
 		}
 		// new sample output w/ offset
 		var final_sample = parseFloat(v) / 32768;
-		var buf_idx = s++ * interleave * 2 + buf_offset;
+		var buf_idx = s++ * interleave + buf_offset;
 		buf[buf_idx] = final_sample;
-		buf[buf_idx + 1] = final_sample;
 	}
 
 	for (var k = 0; k < delta_t; k++) {
@@ -1659,7 +1655,7 @@ jsSID.ReSID.prototype.clock_resample_fast = function(delta_t, buf, n, interleave
 jsSID.ReSID.prototype.generateIntoBuffer = function(count, buffer, offset) {
         //console.log("jsSID.ReSID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
         // FIXME: this could be done in one pass. (No?)
-        for (var i = offset; i < offset + count * 2; i++) {
+        for (var i = offset; i < offset + count; i++) {
                 buffer[i] = 0;
         }
 	var delta = (this.cycles_per_sample * count) >> jsSID.ReSID.const.FIXP_SHIFT;
@@ -1669,7 +1665,7 @@ jsSID.ReSID.prototype.generateIntoBuffer = function(count, buffer, offset) {
 };
 
 jsSID.ReSID.prototype.generate = function(samples) {
-        var data = new Array(samples*2);
+        var data = new Array(samples);
         this.generateIntoBuffer(samples, data, 0);
         return data;
 };
