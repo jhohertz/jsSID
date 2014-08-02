@@ -1,15 +1,20 @@
 ## jsSID
 
-There are also places there are simulations of concepts alien to C, but available in Javascript (IE: Infinity) that could probably simplify some code quite if factored out.
-p a tab with the [demo player](http://jhohertz.github.io/jsSID) and get some music going.
+First, pop a tab with the [demo player](http://jhohertz.github.io/jsSID) and get some music going.
 
-jsSID is a javascript port of *several* emulations of the [SID](http://en.wikipedia.org/wiki/MOS_Technology_SID) sound generator chip as used in the [Commodore 64](http://en.wikipedia.org/wiki/Commodore_64). These are native rewrites in javascript vs. using an [asm.js](http://asmjs.org/) compiler.
+jsSID is a javascript port of *several* emulations of the [SID](http://en.wikipedia.org/wiki/MOS_Technology_SID) sound generator chip as used in the [Commodore 64](http://en.wikipedia.org/wiki/Commodore_64). These are native rewrites in javascript vs. using an [asm.js](http://asmjs.org/) compiler. They were written in September 2013, and recently cleaned up and released June 29, 2014.
+
+The emulations converted include:
 
 - TinySID ([from rockbox](http://git.rockbox.org/?p=rockbox.git;a=blob_plain;f=lib/rbcodec/codecs/sid.c;hb=refs/heads/master))
   - the [MOS6510 CPU](http://en.wikipedia.org/wiki/MOS_Technology_6510) emulation and player code is inspired by this.
 - [ReSID](http://en.wikipedia.org/wiki/ReSID) (from libsidplay)
 - FastSID (from [vice](http://vice-emu.sourceforge.net/))
 - ReSID-NG (from vice, not yet working, behind on integration, bit rotted, waiting on other cleanups before bringing it back. it sounds amazing until it doesn't).
+
+Read on to learn more about jsSID, or just enjoy the music. :)
+
+<!--fold-->
 
 It has been integrated enough to allow players to swap between implementations of the SID. Both a sid-file player, and a player that plays back register dumps are provided. The demo will let you explore all the working engines and configurations.
 

@@ -8,6 +8,10 @@ Written by Tammo Hinrichs (kb) and Rainer Sinsch in 1998-1999
 
 TODO: RESID credits
 
+pico.js
+Copyright (c) 2012 nao yonamine
+https://github.com/mohayonao/pico.js/blob/master/LICENSE
+
 jsxcompressor.js
 Dual licensed under the Apache License Version 2.0, or LGPL Version 3 licenses.
 Copyright 2008-2012
@@ -28,9 +32,6 @@ Copyright (c) 2010, Robert Kieffer
 stream.js
 Copyright (c) 2010, Matt Westcott & Ben Firshman
 All rights reserved.
-
-sink.js
-Copyright (c) 2011, Jussi Kalliokoski
 
 
 Redistribution and use in source and binary forms, with or without 
