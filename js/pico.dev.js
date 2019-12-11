@@ -31,6 +31,7 @@
         var sys_streamsize = sys.streamsize;
         var x, dx;
 
+        context.resume();
         if (sys.samplerate === context.sampleRate) {
           onaudioprocess = function(e) {
             var outs = e.outputBuffer;
