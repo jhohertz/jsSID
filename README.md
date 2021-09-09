@@ -1,16 +1,20 @@
 ## jsSID
 
+First, pop a tab with the [demo player](http://jhohertz.github.io/jsSID) and get some music going.
 
-There are also places there are simulations of concepts alien to C, but available in Javascript (IE: Infinity) that could probably simplify some code quite if factored out.
-p a tab with the [demo player](http://jhohertz.github.io/jsSID) and get some music going.
+jsSID is a javascript port of *several* emulations of the [SID](http://en.wikipedia.org/wiki/MOS_Technology_SID) sound generator chip as used in the [Commodore 64](http://en.wikipedia.org/wiki/Commodore_64). These are native rewrites in javascript vs. using an [asm.js](http://asmjs.org/) compiler. They were written in September 2013, and recently cleaned up and released June 29, 2014.
 
-jsSID is a javascript port of *several* emulations of the [SID](http://en.wikipedia.org/wiki/MOS_Technology_SID) sound generator chip as used in the [Commodore 64](http://en.wikipedia.org/wiki/Commodore_64). These are native rewrites in javascript vs. using an [asm.js](http://asmjs.org/) compiler.
+The emulations converted include:
 
 - TinySID ([from rockbox](http://git.rockbox.org/?p=rockbox.git;a=blob_plain;f=lib/rbcodec/codecs/sid.c;hb=refs/heads/master))
   - the [MOS6510 CPU](http://en.wikipedia.org/wiki/MOS_Technology_6510) emulation and player code is inspired by this.
 - [ReSID](http://en.wikipedia.org/wiki/ReSID) (from libsidplay)
 - FastSID (from [vice](http://vice-emu.sourceforge.net/))
 - ReSID-NG (from vice, not yet working, behind on integration, bit rotted, waiting on other cleanups before bringing it back. it sounds amazing until it doesn't).
+
+Read on to learn more about jsSID, or just enjoy the music. :)
+
+<!--fold-->
 
 It has been integrated enough to allow players to swap between implementations of the SID. Both a sid-file player, and a player that plays back register dumps are provided. The demo will let you explore all the working engines and configurations.
 
@@ -27,4 +31,10 @@ Also, the format of SID file supported it is probably ancient relative to the la
 Sub-songs in a SID file are supported, although there are some bugs (transport control state on mobile disables wrong buttons sometimes, some SIDs report songs that do not seem to work, Monty on the Run track 2 will freeze the browser if it completes)
 
 This code is hand ported from the C sources. Some parts have been adapted to be more javascript friendly, re: data structures mostly, but at the higher levels is fairly true to C code. A consequence of some of this, is needing to manage C-like expectations on some of the mechanics of rollover or signedness on various types, like 32 or 16 bit. In some cases there may be overly paranoid checking that could be toned down. There are also places there are simulations of concepts alien to C, but available in Javascript (IE: Infinity) that could probably simplify some code quite if factored out.
+
+Lastly, there is no nice build/packaging yet. I'd like to wrap this as an NPM/Bower package with all the fixings soon.
+
+Anyhow, I hope you've enjoyed the music if nothing else!
+
+@jhohertz
 

@@ -87,7 +87,7 @@ jsSID.TinySID.prototype.generateIntoBuffer = function(count, buffer, offset) {
 	//console.log("TinySID.generateIntoBuffer (count: " + count + ", offset: " + offset + ")");
 
 	// FIXME: this could be done in one pass. (No?)
-	for (var i = offset; i < offset + count * 2; i++) {
+	for (var i = offset; i < offset + count; i++) {
 		buffer[i] = 0;
 	}
 
@@ -98,9 +98,9 @@ jsSID.TinySID.prototype.generateIntoBuffer = function(count, buffer, offset) {
 	this.filter.precalc();
 
 	var bp;
-	var endbp = count * 2 + offset;
+	var endbp = count + offset;
 
-	for (bp = offset; bp < endbp; bp += 2) {
+	for (bp = offset; bp < endbp; bp += 1) {
 		var outo = 0;
 		var outf = 0;
 		
@@ -131,8 +131,6 @@ jsSID.TinySID.prototype.generateIntoBuffer = function(count, buffer, offset) {
 		var final_sample = parseFloat(this.generateDigi(this.filter.vol * ( outo + outf ))) / 32768;
 		//var final_sample = parseFloat(this.filter.vol * ( outo + outf ) ) / 32768;
 		buffer[bp] = final_sample;
-		buffer[bp+1] = final_sample;
-
 	}
 	return count;
 };
@@ -194,7 +192,7 @@ jsSID.TinySID.prototype.generateDigi = function(sIn) {
 };
 
 jsSID.TinySID.prototype.generate = function(samples) {
-	var data = new Array(samples*2);
+	var data = new Array(samples);
 	this.generateIntoBuffer(samples, data, 0);
 	return data;
 };
